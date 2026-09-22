@@ -309,6 +309,48 @@ dd {
   font-family: "Segoe UI", sans-serif;
 }
 
+.generate-progress {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.progress-head p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+#generateProgressPct {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #efe8dc;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+
 .token-usage {
   margin-top: 8px;
   font-family: "Segoe UI", sans-serif;

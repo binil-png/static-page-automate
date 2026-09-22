@@ -141,6 +141,15 @@
       <h2>3. Generate website</h2>
       <p class="muted">Gemini first studies this clinic’s sheet data and writes a detailed generation prompt, then builds the page with that prompt plus the clinic’s Drive images.</p>
       <button id="generateBtn" type="button" disabled>Generate web app</button>
+      <div id="generateProgress" class="generate-progress" hidden>
+        <div class="progress-head">
+          <p id="generateProgressLabel">Starting...</p>
+          <p id="generateProgressPct">0%</p>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div id="generateProgressBar" class="progress-fill"></div>
+        </div>
+      </div>
       <p id="status" class="status" role="status"></p>
       <p id="tokenUsage" class="muted token-usage" hidden></p>
       <details id="plannedPromptBox" class="prompt-box" hidden>

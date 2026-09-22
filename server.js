@@ -14,6 +14,17 @@ const generatedPages = new Map();
 const GENERATED_DIR = path.join(process.cwd(), "generated");
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 let generateInProgress = false;
+let generateProgress = {
+  active: false,
+  percent: 0,
+  step: "",
+  clinicId: "",
+  clinicName: ""
+};
+
+function setGenerateProgress(update) {
+  generateProgress = { ...generateProgress, ...update };
+}
 
 function toPublicError(error) {
   const googleMessage = error.errors?.[0]?.message
@@ -150,6 +161,13 @@ app.post("/api/generate", async (req, res, next) => {
   }
 
   generateInProgress = true;
+  setGenerateProgress({
+    active: true,
+    percent: 5,
+    step: "Starting website generation...",
+    clinicId: req.body?.clinicId || "",
+    clinicName: ""
+  });
   try {
     const clinic = await getClinicById(req.body?.clinicId);
     if (!clinic) {
@@ -157,12 +175,22 @@ app.post("/api/generate", async (req, res, next) => {
       return;
     }
 
-    const generated = await generateClinicPage(clinic);
+    setGenerateProgress({
+      clinicId: clinic.id,
+      clinicName: clinic.clinicName,
+      percent: 8,
+      step: "Loading clinic details..."
+    });
+    const generated = await generateClinicPage(clinic, (progress) => {
+      setGenerateProgress(progress);
+    });
+    setGenerateProgress({ percent: 96, step: "Saving the website..." });
     const fileName = `${clinic.id}-index.html`;
     await mkdir(GENERATED_DIR, { recursive: true });
     const outputPath = path.join(GENERATED_DIR, fileName);
     await writeFile(outputPath, generated.html, "utf8");
     generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+    setGenerateProgress({ percent: 100, step: "Website ready." });
     res.json({
       clinicId: clinic.id,
       clinicName: clinic.clinicName,
@@ -177,7 +205,16 @@ app.post("/api/generate", async (req, res, next) => {
     next(error);
   } finally {
     generateInProgress = false;
+    setGenerateProgress({
+      active: false,
+      percent: generateProgress.percent === 100 ? 100 : 0,
+      step: generateProgress.percent === 100 ? "Website ready." : ""
+    });
   }
+});
+
+app.get("/api/generate/progress", (_req, res) => {
+  res.json(generateProgress);
 });
 
 app.get("/preview/:id", (req, res) => {

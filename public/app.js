@@ -2,6 +2,11 @@ const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const generateProgress = document.getElementById("generateProgress");
+const generateProgressBar = document.getElementById("generateProgressBar");
+const generateProgressLabel = document.getElementById("generateProgressLabel");
+const generateProgressPct = document.getElementById("generateProgressPct");
+const generateProgressTrack = generateProgress.querySelector(".progress-track");
 const clinicDetails = document.getElementById("clinicDetails");
 const statusEl = document.getElementById("status");
 const tokenUsageEl = document.getElementById("tokenUsage");
@@ -40,6 +45,8 @@ const stepItems = document.querySelectorAll(".steps li");
 
 let generated = null;
 let folderRequestId = 0;
+let progressTimer = null;
+let displayedPercent = 0;
 
 function showAppError(message) {
   appErrorText.textContent = message;
@@ -276,6 +283,7 @@ async function loadSelectedClinic() {
   downloadBtn.hidden = true;
   preview.hidden = true;
   emptyPreview.hidden = false;
+  hideGenerateProgress();
 
   if (!clinicSelect.value) {
     renderClinicDetails(null);
@@ -356,6 +364,57 @@ async function saveSetupAndLoad() {
   }
 }
 
+function setGenerateProgressUi(percent, step) {
+  const value = Math.max(0, Math.min(100, Math.round(percent)));
+  displayedPercent = value;
+  generateProgress.hidden = false;
+  generateProgressBar.style.width = `${value}%`;
+  generateProgressPct.textContent = `${value}%`;
+  generateProgressTrack.setAttribute("aria-valuenow", String(value));
+  if (step) {
+    generateProgressLabel.textContent = step;
+  }
+}
+
+function hideGenerateProgress() {
+  if (progressTimer) {
+    clearInterval(progressTimer);
+    progressTimer = null;
+  }
+  generateProgress.hidden = true;
+  generateProgressBar.style.width = "0%";
+  generateProgressPct.textContent = "0%";
+  generateProgressLabel.textContent = "Starting...";
+  generateProgressTrack.setAttribute("aria-valuenow", "0");
+  displayedPercent = 0;
+}
+
+async function pollGenerateProgress() {
+  try {
+    const progress = await fetchJson("/api/generate/progress");
+    const serverPercent = Number(progress.percent) || 0;
+    const next = Math.max(displayedPercent, serverPercent);
+    setGenerateProgressUi(next, progress.step || generateProgressLabel.textContent);
+  } catch {
+    if (displayedPercent < 92) {
+      setGenerateProgressUi(displayedPercent + 1, generateProgressLabel.textContent);
+    }
+  }
+}
+
+function startGenerateProgress() {
+  if (progressTimer) {
+    clearInterval(progressTimer);
+  }
+  setGenerateProgressUi(4, "Starting website generation...");
+  progressTimer = setInterval(() => {
+    pollGenerateProgress();
+    if (displayedPercent > 0 && displayedPercent < 92) {
+      setGenerateProgressUi(Math.min(92, displayedPercent + 0.4), generateProgressLabel.textContent);
+    }
+  }, 800);
+}
+
 async function generateWebsite() {
   if (!clinicSelect.value) {
     setStatus("Select a clinic first.", true);
@@ -363,7 +422,8 @@ async function generateWebsite() {
   }
 
   generateBtn.disabled = true;
-  setStatus("Studying clinic data, writing a detailed prompt, then generating the website. This can take several minutes...");
+  startGenerateProgress();
+  setStatus("Generating website. This can take several minutes...");
   setTokenUsage(null);
   setPlannedPrompt("");
   setCurrentStep(2);
@@ -375,6 +435,7 @@ async function generateWebsite() {
       body: JSON.stringify({ clinicId: clinicSelect.value })
     });
     generated = result;
+    setGenerateProgressUi(100, "Website ready.");
     showPreview(result.previewUrl, result.downloadUrl);
     setStatus(`${result.clinicName} website is ready.`);
     setTokenUsage(result.usage);
@@ -385,8 +446,13 @@ async function generateWebsite() {
       clearAppError();
     }
   } catch (error) {
+    hideGenerateProgress();
     setStatus(error.message, true);
   } finally {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
     generateBtn.disabled = !clinicSelect.value;
   }
 }
