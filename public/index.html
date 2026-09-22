@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinic Website Generator</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Static page automate</p>
+      <h1>Clinic Website Generator</h1>
+    </div>
+    <div class="topbar-actions">
+      <p id="connectionBadge" class="badge">Checking connection...</p>
+      <button id="settingsToggle" type="button" class="secondary">Sheet settings</button>
+    </div>
+  </header>
+
+  <div id="appError" class="app-error" hidden role="alert">
+    <p id="appErrorText"></p>
+    <button id="appErrorClose" type="button" class="secondary">Dismiss</button>
+  </div>
+
+  <ol class="steps">
+    <li class="is-current">Share form</li>
+    <li>Choose clinic</li>
+    <li>Generate</li>
+    <li>Download</li>
+  </ol>
+
+  <main class="layout">
+    <section id="setupPanel" class="panel" hidden>
+      <h2>Sheet settings</h2>
+      <p class="muted">Hidden from normal use. Connect the restricted sheet, form, and Drive folder here.</p>
+
+      <ol class="howto">
+        <li>Enable Google Sheets API and Google Drive API.</li>
+        <li>Upload the service account JSON key.</li>
+        <li>Share the sheet, form, and parent Drive folder with the service account email as Viewer or Editor.</li>
+      </ol>
+
+      <label for="credentialsFile">Service account JSON key</label>
+      <input id="credentialsFile" type="file" accept=".json,application/json">
+      <p id="credentialsStatus" class="muted">No key uploaded yet.</p>
+
+      <div id="emailBox" class="email-box" hidden>
+        <label>Share Google files with this email</label>
+        <div class="copy-row">
+          <code id="serviceAccountEmail"></code>
+          <button id="copyEmailBtn" type="button" class="secondary">Copy</button>
+        </div>
+      </div>
+
+      <label for="sheetUrl">Google Sheet URL or ID</label>
+      <input id="sheetUrl" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+
+      <div class="field-row">
+        <div>
+          <label for="sheetTab">Tab name (optional)</label>
+          <input id="sheetTab" type="text" placeholder="Form Responses 1">
+        </div>
+        <div>
+          <label for="sheetGid">gid (optional)</label>
+          <input id="sheetGid" type="text" placeholder="0">
+        </div>
+      </div>
+
+      <label for="formUrl">Google Form URL</label>
+      <input id="formUrl" type="text" placeholder="https://docs.google.com/forms/d/e/.../viewform">
+
+      <label for="parentFolderId">Drive parent folder ID (optional)</label>
+      <input id="parentFolderId" type="text" placeholder="Folder ID from the Drive URL">
+
+      <button id="saveSetupBtn" type="button">Save and load clinics</button>
+      <p id="setupStatus" class="status" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>1. Share form with a client</h2>
+      <p class="muted">Creates a Google Drive folder, shares it with the client, and emails the form link plus the folder link.</p>
+      <label for="clientEmail">Client Gmail</label>
+      <input id="clientEmail" type="email" placeholder="client@gmail.com">
+      <button id="shareFormBtn" type="button">Share form</button>
+      <p id="shareStatus" class="status" role="status"></p>
+      <div id="shareResult" class="details" hidden>
+        <dl>
+          <div>
+            <dt>Form</dt>
+            <dd><a id="sharedFormLink" href="#" target="_blank" rel="noreferrer">Open form</a></dd>
+          </div>
+          <div>
+            <dt>Drive folder</dt>
+            <dd><a id="sharedFolderLink" href="#" target="_blank" rel="noreferrer">Open folder</a></dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>2. Choose a clinic</h2>
+      <label for="clinicSelect">Clinic</label>
+      <select id="clinicSelect">
+        <option value="">Loading clinics...</option>
+      </select>
+      <button id="refreshBtn" type="button" class="secondary">Refresh list</button>
+
+      <div id="clinicDetails" class="details" hidden>
+        <h3 id="detailName"></h3>
+        <p id="detailTagline" class="muted"></p>
+        <dl>
+          <div>
+            <dt>Address</dt>
+            <dd id="detailAddress"></dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd id="detailPhone"></dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd id="detailEmail"></dd>
+          </div>
+          <div>
+            <dt>Timing</dt>
+            <dd id="detailTiming"></dd>
+          </div>
+        </dl>
+        <div class="folder-box">
+          <p id="folderStatus" class="muted">Checking Drive folder...</p>
+          <div class="folder-actions">
+            <a id="openFolderBtn" class="button" hidden target="_blank" rel="noreferrer">Open Drive folder</a>
+            <button id="createFolderBtn" type="button" hidden>Create Drive folder</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>3. Generate website</h2>
+      <p class="muted">Gemini first studies this clinic’s sheet data and writes a detailed generation prompt, then builds the page with that prompt plus the clinic’s Drive images.</p>
+      <button id="generateBtn" type="button" disabled>Generate web app</button>
+      <p id="status" class="status" role="status"></p>
+      <p id="tokenUsage" class="muted token-usage" hidden></p>
+      <details id="plannedPromptBox" class="prompt-box" hidden>
+        <summary>Gemini generation prompt</summary>
+        <pre id="plannedPromptText"></pre>
+      </details>
+    </section>
+
+    <section class="panel result-panel">
+      <div class="result-header">
+        <h2>4. Preview and download</h2>
+        <a id="downloadBtn" class="button" hidden>Download index.html</a>
+      </div>
+      <iframe id="preview" title="Generated clinic website preview" hidden></iframe>
+      <p id="emptyPreview" class="muted">Generate a website to preview it here.</p>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

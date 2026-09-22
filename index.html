@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adoor Vet Trust Veterinary Hospital | അടൂർ</title>
+    <style>
+        :root {
+            --primary-blue: #143e8c;
+            --secondary-blue: #1e52b2;
+            --accent-green: #29823b;
+            --accent-red: #d92d20;
+            --dark-color: #222222;
+            --light-color: #f7f9fc;
+            --white: #ffffff;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            color: var(--dark-color);
+            background-color: var(--light-color);
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 8px 5%;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .top-bar-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .top-bar a {
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .top-bar a:hover {
+            color: #d1e3ff;
+        }
+
+        /* Header & Navigation */
+        header {
+            background-color: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 5%;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand img {
+            height: 60px;
+            width: 60px;
+            object-fit: contain;
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            color: var(--primary-blue);
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .brand-text span {
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            font-weight: 600;
+            color: var(--dark-color);
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--secondary-blue);
+        }
+
+        .emergency-btn {
+            background-color: var(--accent-red);
+            color: var(--white);
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: 700;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .emergency-btn:hover {
+            background-color: #b52216;
+            transform: translateY(-2px);
+        }
+
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--primary-blue);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            padding: 40px 5%;
+            color: var(--white);
+            text-align: center;
+        }
+
+        .hero-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .hero-banner-img {
+            width: 100%;
+            max-width: 900px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            border: 4px solid rgba(255,255,255,0.2);
+            transition: var(--transition);
+        }
+
+        .hero-banner-img:hover {
+            transform: scale(1.01);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-green);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background-color: #21692e;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--white);
+            border: 2px solid var(--white);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--white);
+            color: var(--primary-blue);
+            transform: translateY(-2px);
+        }
+
+        /* Section Styling */
+        section {
+            padding: 80px 5%;
+            max-width: 1250px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-header h2 {
+            font-size: 2.2rem;
+            color: var(--primary-blue);
+            margin-bottom: 15px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-header h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background-color: var(--accent-green);
+            border-radius: 2px;
+        }
+
+        .section-header p {
+            color: #666;
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* About Section */
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .about-content h3 {
+            font-size: 1.8rem;
+            color: var(--secondary-blue);
+            margin-bottom: 20px;
+        }
+
+        .about-content p {
+            margin-bottom: 20px;
+            color: #444;
+            font-size: 1.05rem;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: var(--primary-blue);
+        }
+
+        .feature-item::before {
+            content: '✔';
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .about-image {
+            position: relative;
+        }
+
+        .about-image img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        /* Services Section (Animals from Logo) */
+        .services-bg {
+            background-color: #edf2f8;
+            max-width: 100%;
+        }
+
+        .services-wrapper {
+            max-width: 1250px;
+            margin: 0 auto;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: var(--white);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: var(--transition);
+            border-top: 4px solid var(--primary-blue);
+            padding: 30px 25px;
+            text-align: center;
+        }
+
+        .service-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-top-color: var(--accent-green);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .service-card h3 {
+            font-size: 1.3rem;
+            color: var(--primary-blue);
+            margin-bottom: 12px;
+        }
+
+        .service-card p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Location & Contact Section */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .contact-info-box {
+            background: var(--white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .info-group {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .info-icon {
+            background: rgba(20, 62, 140, 0.1);
+            color: var(--primary-blue);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .info-details h4 {
+            font-size: 1.1rem;
+            color: var(--primary-blue);
+            margin-bottom: 5px;
+        }
+
+        .info-details p, .info-details a {
+            color: #555;
+            font-size: 1rem;
+        }
+
+        .info-details a:hover {
+            color: var(--accent-green);
+        }
+
+        .map-container {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            min-height: 400px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .map-placeholder {
+            padding: 30px;
+            color: var(--primary-blue);
+        }
+
+        .map-placeholder h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 60px 5% 30px;
+        }
+
+        .footer-container {
+            max-width: 1250px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 40px;
+        }
+
+        .footer-col h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 8px;
+        }
+
+        .footer-col h3::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 30px;
+            height: 2px;
+            background-color: var(--accent-green);
+        }
+
+        .footer-col p {
+            color: #d1e3ff;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .footer-links a {
+            color: #d1e3ff;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--white);
+            padding-left: 5px;
+        }
+
+        .tagline-banner {
+            text-align: center;
+            font-style: italic;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #a3c1ff;
+            margin-bottom: 30px;
+            letter-spacing: 0.5px;
+        }
+
+        .copyright {
+            text-align: center;
+            color: #a3c1ff;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .about-grid, .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: var(--white);
+                padding: 20px;
+                box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+                text-align: center;
+                gap: 15px;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-info">
+            <span>📍 Location: Adoor / അടൂർ, Kerala</span>
+            <span>🕒 Open 24/7 for Emergencies</span>
+        </div>
+        <div>
+            <span>Emergency Lines: </span>
+            <a href="tel:9447087258"><strong>94470-87258</strong></a> / 
+            <a href="tel:9446965207"><strong>94469-65207</strong></a>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="navbar">
+            <a href="#" class="brand">
+                <img src="resource/WhatsApp Image 2026-08-23 at 8.01.34 PM.jpeg" alt="Adoor Vet Trust Logo">
+                <div class="brand-text">
+                    <h1>Adoor Vet Trust</h1>
+                    <span>VETERINARY HOSPITAL</span>
+                </div>
+            </a>
+            
+            <div class="hamburger" id="hamburger">☰</div>
+
+            <nav class="nav-links" id="navLinks">
+                <a href="#home">Home</a>
+                <a href="#about">About</a>
+                <a href="#services">Services</a>
+                <a href="#contact">Contact</a>
+                <a href="tel:9447087258" class="emergency-btn">📞 Call Now</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-container">
+            <img src="resource/WhatsApp Image 2026-08-23 at 8.02.00 PM.jpeg" alt="Adoor Vet Trust Veterinary Hospital Banner" class="hero-banner-img">
+            <div class="hero-actions">
+                <a href="#contact" class="btn btn-primary">Get in Touch</a>
+                <a href="tel:9447087258" class="btn btn-outline">📞 9447087258</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="section-header">
+            <h2>About Adoor Vet Trust</h2>
+            <p>Dedicated veterinary excellence serving our community with advanced technology and profound compassion.</p>
+        </div>
+        <div class="about-grid">
+            <div class="about-content">
+                <h3>Committed to Superior Animal Healthcare</h3>
+                <p>Adoor Vet Trust Veterinary Hospital is a premier institution located in Adoor (അടൂർ), providing comprehensive medical, surgical, and emergency care for a wide spectrum of animals—from beloved household pets to vital livestock and avian species.</p>
+                <p>Our experienced veterinarians and support staff utilize modern diagnostic and therapeutic capabilities to ensure that every animal receives accurate diagnosis and compassionate treatment tailored to their specific needs.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">Emergency Care</div>
+                    <div class="feature-item">Advanced Diagnostics</div>
+                    <div class="feature-item">Experienced Surgeons</div>
+                    <div class="feature-item">Multi-Species Care</div>
+                    <div class="feature-item">Inpatient Facilities</div>
+                    <div class="feature-item">Affordable Treatments</div>
+                </div>
+            </div>
+            <div class="about-image">
+                <img src="resource/WhatsApp Image 2026-08-23 at 8.01.34 PM.jpeg" alt="Adoor Vet Trust Emblem">
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section (Based on Logo Animals) -->
+    <div class="services-bg">
+        <section id="services" class="services-wrapper">
+            <div class="section-header">
+                <h2>Our Multi-Species Veterinary Services</h2>
+                <p>We specialize in the specialized medical care and wellbeing of all animals featured in our care network.</p>
+            </div>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">🐄</div>
+                    <h3>Cattle & Livestock Care</h3>
+                    <p>Comprehensive herd health, obstetrics, mastitis management, and large animal internal medicine.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🐕</div>
+                    <h3>Canine Veterinary Care</h3>
+                    <p>Vaccinations, routine wellness exams, soft-tissue surgery, dental care, and dermatological treatments for dogs.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🐈</div>
+                    <h3>Feline Care</h3>
+                    <p>Specialized cat-friendly handling, spay/neuter services, nutritional counseling, and internal disease management.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🐐</div>
+                    <h3>Goat & Small Ruminants</h3>
+                    <p>Parasite control, hoof trimming, infectious disease prevention, and flock health programs.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🐇</div>
+                    <h3>Rabbits & Small Pets</h3>
+                    <p>Gentle diagnostics, dental trimming for herbivores, nutritional advice, and specialized cage-pet therapies.</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🦜🐓</div>
+                    <h3>Avian & Poultry Practice</h3>
+                    <p>Individual bird medicine, flock consultation, disease testing, and therapeutic management for birds and poultry.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Contact & Location Section -->
+    <section id="contact">
+        <div class="section-header">
+            <h2>Location & Contact Us</h2>
+            <p>Reach out to us anytime for medical appointments, urgent care inquiries, or consultations.</p>
+        </div>
+        <div class="contact-grid">
+            <div class="contact-info-box">
+                <div class="info-group">
+                    <div class="info-icon">📍</div>
+                    <div class="info-details">
+                        <h4>Location / സ്ഥലം</h4>
+                        <p>Adoor / അടൂർ<br>Pathanamthitta District, Kerala</p>
+                    </div>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-icon">📞</div>
+                    <div class="info-details">
+                        <h4>Phone Numbers</h4>
+                        <p><a href="tel:9447087258">94470 87258</a></p>
+                        <p><a href="tel:9446965207">94469 65207</a></p>
+                    </div>
+                </div>
+
+                <div class="info-group">
+                    <div class="info-icon">🕒</div>
+                    <div class="info-details">
+                        <h4>Working Hours</h4>
+                        <p>Monday - Saturday: 8:30 AM - 6:00 PM<br>Emergency Care: 24/7 Available</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div class="map-placeholder">
+                    <h3>Adoor Vet Trust Veterinary Hospital</h3>
+                    <p>📍 Adoor / അടൂർ, Kerala</p>
+                    <p style="margin-top: 15px; font-size: 0.9rem; color: #555;">Visit our facility or call our helpline for direct directions and immediate medical guidance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-col">
+                <h3>Adoor Vet Trust</h3>
+                <p>A trusted name in professional veterinary healthcare, committed to treating every animal with dignity, expertise, and love.</p>
+            </div>
+            <div class="footer-col">
+                <h3>Quick Links</h3>
+                <div class="footer-links">
+                    <a href="#home">Home</a>
+                    <a href="#about">About Us</a>
+                    <a href="#services">Our Services</a>
+                    <a href="#contact">Contact Us</a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h3>Emergency Hotline</h3>
+                <p>For urgent medical assistance or critical animal rescue support:</p>
+                <p><a href="tel:9447087258"><strong>📞 94470 87258</strong></a></p>
+                <p><a href="tel:9446965207"><strong>📞 94469 65207</strong></a></p>
+            </div>
+        </div>
+
+        <div class="tagline-banner">
+            Compassionate Care • Advanced Treatment • A Healthier Tomorrow
+        </div>
+
+        <div class="copyright">
+            <p>&copy; 2026 Adoor Vet Trust Veterinary Hospital, Adoor (അടൂർ). All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Mobile Menu Toggle -->
+    <script>
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu on click of nav link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>
