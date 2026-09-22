@@ -1,6 +1,7 @@
 const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
+const testimonialsBox = document.getElementById("testimonialsBox");
 const downloadBtn = document.getElementById("downloadBtn");
 const generateProgress = document.getElementById("generateProgress");
 const generateProgressBar = document.getElementById("generateProgressBar");
@@ -47,6 +48,7 @@ let generated = null;
 let folderRequestId = 0;
 let progressTimer = null;
 let displayedPercent = 0;
+let testimonialsClinicId = "";
 
 function showAppError(message) {
   appErrorText.textContent = message;
@@ -287,8 +289,15 @@ async function loadSelectedClinic() {
 
   if (!clinicSelect.value) {
     renderClinicDetails(null);
+    testimonialsBox.value = "";
+    testimonialsClinicId = "";
     setCurrentStep(1);
     return;
+  }
+
+  if (clinicSelect.value !== testimonialsClinicId) {
+    testimonialsBox.value = "";
+    testimonialsClinicId = clinicSelect.value;
   }
 
   const clinic = await fetchJson(`/api/clinics/${encodeURIComponent(clinicSelect.value)}`);
@@ -432,7 +441,10 @@ async function generateWebsite() {
     const result = await fetchJson("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicId: clinicSelect.value })
+      body: JSON.stringify({
+        clinicId: clinicSelect.value,
+        testimonials: testimonialsBox.value
+      })
     });
     generated = result;
     setGenerateProgressUi(100, "Website ready.");

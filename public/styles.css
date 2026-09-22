@@ -201,12 +201,20 @@ button,
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: "Segoe UI", sans-serif;
+  line-height: 1.45;
 }
 
 .field-row {

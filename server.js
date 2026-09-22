@@ -175,6 +175,8 @@ app.post("/api/generate", async (req, res, next) => {
       return;
     }
 
+    clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
+
     setGenerateProgress({
       clinicId: clinic.id,
       clinicName: clinic.clinicName,

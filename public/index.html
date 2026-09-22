@@ -140,6 +140,9 @@
     <section class="panel">
       <h2>3. Generate website</h2>
       <p class="muted">Gemini first studies this clinic’s sheet data and writes a detailed generation prompt, then builds the page with that prompt plus the clinic’s Drive images.</p>
+      <label for="testimonialsBox">Testimonials</label>
+      <textarea id="testimonialsBox" rows="6" placeholder="Add testimonials to include on the website. One review per paragraph. Optional first line: reviewer name."></textarea>
+      <p class="muted">This text is added to the generation prompt and shown in the testimonials section.</p>
       <button id="generateBtn" type="button" disabled>Generate web app</button>
       <div id="generateProgress" class="generate-progress" hidden>
         <div class="progress-head">
