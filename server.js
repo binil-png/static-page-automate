@@ -6,7 +6,8 @@ import { createClinicFolder, findClinicFolder } from "./lib/clinicFolder.js";
 import { generateClinicPage } from "./lib/generate.js";
 import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
-import { getAnthropicApiKey, getShareSettings, getSheetSettings, saveSetupConfig } from "./lib/setupConfig.js";
+import { getAnthropicApiKey, getOpenAiApiKey, getShareSettings, getSheetSettings, normalizeProvider, saveSetupConfig } from "./lib/setupConfig.js";
+import { getTokenUsage, recordTokenUsage } from "./lib/tokenUsage.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -58,6 +59,7 @@ app.get("/api/setup", async (_req, res, next) => {
       parentFolderId: share.parentFolderId || "",
       hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
       hasClaudeKey: Boolean(await getAnthropicApiKey()),
+      hasChatGptKey: Boolean(await getOpenAiApiKey()),
       ready: credentials.hasCredentials && Boolean(sheet.sheetId)
     });
   } catch (error) {
@@ -91,7 +93,8 @@ app.post("/api/setup/sheet", async (req, res, next) => {
       gid: req.body?.gid,
       formUrl: req.body?.formUrl,
       parentFolderId: req.body?.parentFolderId,
-      anthropicApiKey: req.body?.anthropicApiKey
+      anthropicApiKey: req.body?.anthropicApiKey,
+      openaiApiKey: req.body?.openaiApiKey
     });
     clearClinicCache();
     res.json({
@@ -101,7 +104,8 @@ app.post("/api/setup/sheet", async (req, res, next) => {
       gid: config.gid,
       formUrl: config.formUrl,
       parentFolderId: config.parentFolderId,
-      hasClaudeKey: Boolean(config.anthropicApiKey || process.env.ANTHROPIC_API_KEY)
+      hasClaudeKey: Boolean(config.anthropicApiKey || process.env.ANTHROPIC_API_KEY),
+      hasChatGptKey: Boolean(config.openaiApiKey || process.env.OPENAI_API_KEY)
     });
   } catch (error) {
     next(error);
@@ -112,6 +116,14 @@ app.post("/api/share-form", async (req, res, next) => {
   try {
     const result = await shareFormWithClient(req.body?.email);
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/usage", async (req, res, next) => {
+  try {
+    res.json(await getTokenUsage(normalizeProvider(req.query.provider)));
   } catch (error) {
     next(error);
   }
@@ -187,7 +199,7 @@ app.post("/api/generate", async (req, res, next) => {
     }
 
     clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
-    clinic.provider = req.body?.provider === "claude" ? "claude" : "gemini";
+    clinic.provider = normalizeProvider(req.body?.provider);
 
     setGenerateProgress({
       clinicId: clinic.id,
@@ -204,6 +216,7 @@ app.post("/api/generate", async (req, res, next) => {
     const outputPath = path.join(GENERATED_DIR, fileName);
     await writeFile(outputPath, generated.html, "utf8");
     generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+    const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
     setGenerateProgress({ percent: 100, step: "Website ready." });
     res.json({
       clinicId: clinic.id,
@@ -212,6 +225,7 @@ app.post("/api/generate", async (req, res, next) => {
       previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
       downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
       usage: generated.usage,
+      tokenDetails,
       plannedPrompt: generated.plannedPrompt || "",
       warnings: generated.warnings || []
     });

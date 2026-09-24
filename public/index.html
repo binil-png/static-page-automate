@@ -77,6 +77,10 @@
       <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-...">
       <p id="anthropicKeyStatus" class="muted">No Claude key saved yet.</p>
 
+      <label for="openaiApiKey">ChatGPT API key</label>
+      <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-...">
+      <p id="openaiKeyStatus" class="muted">No ChatGPT key saved yet.</p>
+
       <button id="saveSetupBtn" type="button">Save and load clinics</button>
       <p id="setupStatus" class="status" role="status"></p>
     </section>
@@ -154,17 +158,34 @@
           <input id="modelClaude" type="radio" name="generateModel" value="claude">
           <span>Claude</span>
         </label>
+        <label class="check-row" for="modelChatGpt">
+          <input id="modelChatGpt" type="radio" name="generateModel" value="chatgpt">
+          <span>ChatGPT</span>
+        </label>
       </div>
       <div id="claudeSteps" class="claude-steps" hidden>
-        <p class="muted">Do these steps once before generating with Claude:</p>
-        <ol class="howto">
-          <li>Open <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer">console.anthropic.com</a> and create or sign in to your account.</li>
-          <li>Add billing if Anthropic asks for it.</li>
-          <li>Go to API keys and create a key.</li>
-          <li>Open <strong>Sheet settings</strong> and paste the key in <strong>Claude API key</strong>, then save. Or add <code>ANTHROPIC_API_KEY=sk-ant-...</code> to the <code>.env</code> file and restart <code>npm start</code>.</li>
-          <li>Select Claude here and generate.</li>
-        </ol>
-        <p id="claudeKeyHint" class="muted">Claude key is not saved yet.</p>
+        <div id="tokenDetails" class="token-details">
+          <h3 id="tokenDetailsTitle">Token details</h3>
+          <p id="tokenRates" class="muted">Token rates appear here after you select Claude or ChatGPT.</p>
+          <dl>
+            <div>
+              <dt>Last generation</dt>
+              <dd id="tokenLast">No generation yet.</dd>
+            </div>
+            <div>
+              <dt>Estimated cost</dt>
+              <dd id="tokenCost">$0.00</dd>
+            </div>
+            <div>
+              <dt>All generations</dt>
+              <dd id="tokenTotals">0 tokens</dd>
+            </div>
+            <div>
+              <dt>Remaining credits</dt>
+              <dd id="tokenRemaining">Not available from this API key. Check console.anthropic.com → Billing.</dd>
+            </div>
+          </dl>
+        </div>
       </div>
       <label for="testimonialsBox">Testimonials</label>
       <textarea id="testimonialsBox" rows="6" placeholder="Add testimonials to include on the website. One review per paragraph. Optional first line: reviewer name."></textarea>

@@ -4,10 +4,18 @@ const generateBtn = document.getElementById("generateBtn");
 const testimonialsBox = document.getElementById("testimonialsBox");
 const modelGemini = document.getElementById("modelGemini");
 const modelClaude = document.getElementById("modelClaude");
+const modelChatGpt = document.getElementById("modelChatGpt");
 const claudeSteps = document.getElementById("claudeSteps");
-const claudeKeyHint = document.getElementById("claudeKeyHint");
+const tokenDetailsTitle = document.getElementById("tokenDetailsTitle");
+const tokenLast = document.getElementById("tokenLast");
+const tokenCost = document.getElementById("tokenCost");
+const tokenTotals = document.getElementById("tokenTotals");
+const tokenRemaining = document.getElementById("tokenRemaining");
+const tokenRates = document.getElementById("tokenRates");
 const anthropicApiKey = document.getElementById("anthropicApiKey");
 const anthropicKeyStatus = document.getElementById("anthropicKeyStatus");
+const openaiApiKey = document.getElementById("openaiApiKey");
+const openaiKeyStatus = document.getElementById("openaiKeyStatus");
 const downloadBtn = document.getElementById("downloadBtn");
 const generateProgress = document.getElementById("generateProgress");
 const generateProgressBar = document.getElementById("generateProgressBar");
@@ -78,6 +86,15 @@ function setStatus(message, isError = false) {
   setMessage(statusEl, message, isError);
 }
 
+function formatUsd(value) {
+  const amount = Number(value) || 0;
+  return `$${amount.toFixed(amount > 0 && amount < 0.01 ? 4 : 2)}`;
+}
+
+function formatTokenCount(value) {
+  return Number(value || 0).toLocaleString();
+}
+
 function setTokenUsage(usage) {
   if (!usage || !usage.totalTokens) {
     tokenUsageEl.hidden = true;
@@ -86,7 +103,54 @@ function setTokenUsage(usage) {
   }
 
   tokenUsageEl.hidden = false;
-  tokenUsageEl.textContent = `Tokens this generation: ${usage.totalTokens} total (${usage.promptTokens} input, ${usage.outputTokens} output). Remaining balance is not provided by the model.`;
+  const cost = usage.estimatedUsd != null ? ` Estimated cost ${formatUsd(usage.estimatedUsd)}.` : "";
+  tokenUsageEl.textContent = `Tokens this generation: ${formatTokenCount(usage.totalTokens)} total (${formatTokenCount(usage.promptTokens)} input, ${formatTokenCount(usage.outputTokens)} output).${cost} Remaining wallet is not provided by the API key.`;
+}
+
+function providerTitle(provider) {
+  if (provider === "claude") {
+    return "Claude";
+  }
+  if (provider === "chatgpt") {
+    return "ChatGPT";
+  }
+  return "Gemini";
+}
+
+function renderTokenDetails(details) {
+  const name = providerTitle(details?.provider || selectedProvider());
+  tokenDetailsTitle.textContent = `${name} token details`;
+  if (!details) {
+    tokenLast.textContent = `No ${name} generation yet.`;
+    tokenCost.textContent = "$0.00";
+    tokenTotals.textContent = "0 tokens";
+    return;
+  }
+
+  if (details.rates) {
+    tokenRates.textContent = `${details.rates.model}: $${details.rates.inputPerMillionUsd} / 1M input tokens, $${details.rates.outputPerMillionUsd} / 1M output tokens.`;
+  }
+  if (details.last?.totalTokens) {
+    const when = details.last.at ? ` (${new Date(details.last.at).toLocaleString()})` : "";
+    const clinic = details.last.clinicName ? ` for ${details.last.clinicName}` : "";
+    tokenLast.textContent = `${formatTokenCount(details.last.totalTokens)} total (${formatTokenCount(details.last.promptTokens)} input, ${formatTokenCount(details.last.outputTokens)} output)${clinic}${when}.`;
+    tokenCost.textContent = formatUsd(details.last.estimatedUsd);
+  } else {
+    tokenLast.textContent = `No ${name} generation yet.`;
+    tokenCost.textContent = "$0.00";
+  }
+  const totals = details.totals || {};
+  tokenTotals.textContent = totals.generations
+    ? `${formatTokenCount(totals.totalTokens)} tokens in ${totals.generations} generation${totals.generations === 1 ? "" : "s"} (${formatUsd(totals.estimatedUsd)} estimated).`
+    : "0 tokens";
+  tokenRemaining.textContent = details.remainingNote
+    || "Not available from this API key.";
+}
+
+async function loadTokenDetails() {
+  const details = await fetchJson(`/api/usage?provider=${encodeURIComponent(selectedProvider())}`);
+  renderTokenDetails(details);
+  return details;
 }
 
 function setPlannedPrompt(prompt) {
@@ -175,9 +239,11 @@ function renderConnection(setup) {
   anthropicKeyStatus.textContent = setup.hasClaudeKey
     ? "Claude API key is saved."
     : "No Claude key saved yet. Add it here or in the .env file.";
-  claudeKeyHint.textContent = setup.hasClaudeKey
-    ? "Claude key is ready. You can generate with Claude."
-    : "Claude key is not saved yet. Follow the steps above.";
+  openaiApiKey.value = "";
+  openaiApiKey.placeholder = setup.hasChatGptKey ? "ChatGPT key is saved. Paste a new key to replace it." : "sk-...";
+  openaiKeyStatus.textContent = setup.hasChatGptKey
+    ? "ChatGPT API key is saved."
+    : "No ChatGPT key saved yet. Add it here or in the .env file.";
 }
 
 function renderClinicOptions(clinics, selectedId) {
@@ -374,7 +440,8 @@ async function saveSetupAndLoad() {
         gid: sheetGid.value,
         formUrl: formUrl.value,
         parentFolderId: parentFolderId.value,
-        anthropicApiKey: anthropicApiKey.value
+        anthropicApiKey: anthropicApiKey.value,
+        openaiApiKey: openaiApiKey.value
       })
     });
     await loadSetup();
@@ -466,7 +533,10 @@ async function generateWebsite() {
     setGenerateProgressUi(100, "Website ready.");
     showPreview(result.previewUrl, result.downloadUrl);
     setStatus(`${result.clinicName} website is ready.`);
-    setTokenUsage(result.usage);
+    setTokenUsage(result.tokenDetails?.last || result.usage);
+    if (result.tokenDetails) {
+      renderTokenDetails(result.tokenDetails);
+    }
     setPlannedPrompt(result.plannedPrompt);
     if (result.warnings?.length) {
       showAppError(result.warnings.join(" "));
@@ -579,16 +649,27 @@ refreshBtn.addEventListener("click", () => {
 });
 
 function selectedProvider() {
-  return modelClaude.checked ? "claude" : "gemini";
+  if (modelClaude.checked) {
+    return "claude";
+  }
+  if (modelChatGpt.checked) {
+    return "chatgpt";
+  }
+  return "gemini";
 }
 
 function syncModelUi() {
-  const usingClaude = selectedProvider() === "claude";
-  claudeSteps.hidden = !usingClaude;
+  const provider = selectedProvider();
+  const showTokens = provider === "claude" || provider === "chatgpt";
+  claudeSteps.hidden = !showTokens;
+  if (showTokens) {
+    loadTokenDetails().catch(() => {});
+  }
 }
 
 modelGemini.addEventListener("change", syncModelUi);
 modelClaude.addEventListener("change", syncModelUi);
+modelChatGpt.addEventListener("change", syncModelUi);
 syncModelUi();
 
 generateBtn.addEventListener("click", () => {

@@ -409,6 +409,34 @@ dd {
   font-size: 0.9rem;
 }
 
+.token-details {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.token-details h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.token-details dl {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 12px 0 0;
+}
+
+.token-details dt {
+  margin: 0;
+}
+
+.token-details dd {
+  margin: 4px 0 0;
+  font-family: "Segoe UI", sans-serif;
+  color: var(--ink);
+}
+
 .prompt-box {
   margin-top: 16px;
   padding: 12px 14px;
