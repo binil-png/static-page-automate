@@ -6,7 +6,7 @@ import { createClinicFolder, findClinicFolder } from "./lib/clinicFolder.js";
 import { generateClinicPage } from "./lib/generate.js";
 import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
-import { getShareSettings, getSheetSettings, saveSetupConfig } from "./lib/setupConfig.js";
+import { getAnthropicApiKey, getShareSettings, getSheetSettings, saveSetupConfig } from "./lib/setupConfig.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -56,6 +56,8 @@ app.get("/api/setup", async (_req, res, next) => {
       gid: sheet.gid || "",
       formUrl: share.formUrl || "",
       parentFolderId: share.parentFolderId || "",
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasClaudeKey: Boolean(await getAnthropicApiKey()),
       ready: credentials.hasCredentials && Boolean(sheet.sheetId)
     });
   } catch (error) {
@@ -88,10 +90,19 @@ app.post("/api/setup/sheet", async (req, res, next) => {
       tab: req.body?.tab,
       gid: req.body?.gid,
       formUrl: req.body?.formUrl,
-      parentFolderId: req.body?.parentFolderId
+      parentFolderId: req.body?.parentFolderId,
+      anthropicApiKey: req.body?.anthropicApiKey
     });
     clearClinicCache();
-    res.json(config);
+    res.json({
+      sheetUrl: config.sheetUrl,
+      sheetId: config.sheetId,
+      tab: config.tab,
+      gid: config.gid,
+      formUrl: config.formUrl,
+      parentFolderId: config.parentFolderId,
+      hasClaudeKey: Boolean(config.anthropicApiKey || process.env.ANTHROPIC_API_KEY)
+    });
   } catch (error) {
     next(error);
   }
@@ -176,6 +187,8 @@ app.post("/api/generate", async (req, res, next) => {
     }
 
     clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
+    clinic.createLogo = req.body?.createLogo === true || req.body?.createLogo === "true";
+    clinic.provider = req.body?.provider === "claude" ? "claude" : "gemini";
 
     setGenerateProgress({
       clinicId: clinic.id,

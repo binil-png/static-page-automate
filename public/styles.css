@@ -217,6 +217,50 @@ textarea {
   line-height: 1.45;
 }
 
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.check-row input {
+  width: auto;
+  margin: 0;
+}
+
+.model-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-bottom: 8px;
+}
+
+.model-choice .check-row {
+  margin: 0;
+}
+
+.claude-steps {
+  margin: 8px 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.claude-steps .howto {
+  margin-top: 8px;
+}
+
+.claude-steps a {
+  color: var(--accent);
+}
+
 .field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

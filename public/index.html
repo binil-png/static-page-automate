@@ -73,6 +73,10 @@
       <label for="parentFolderId">Drive parent folder ID (optional)</label>
       <input id="parentFolderId" type="text" placeholder="Folder ID from the Drive URL">
 
+      <label for="anthropicApiKey">Claude API key</label>
+      <input id="anthropicApiKey" type="password" autocomplete="off" placeholder="sk-ant-...">
+      <p id="anthropicKeyStatus" class="muted">No Claude key saved yet.</p>
+
       <button id="saveSetupBtn" type="button">Save and load clinics</button>
       <p id="setupStatus" class="status" role="status"></p>
     </section>
@@ -139,10 +143,37 @@
 
     <section class="panel">
       <h2>3. Generate website</h2>
-      <p class="muted">Gemini first studies this clinic’s sheet data and writes a detailed generation prompt, then builds the page with that prompt plus the clinic’s Drive images.</p>
+      <p class="muted" id="generateHelp">The selected model studies this clinic’s sheet data, writes a detailed generation prompt, then builds the page with that prompt plus the clinic’s Drive images.</p>
+      <label>Model</label>
+      <div class="model-choice">
+        <label class="check-row" for="modelGemini">
+          <input id="modelGemini" type="radio" name="generateModel" value="gemini" checked>
+          <span>Gemini</span>
+        </label>
+        <label class="check-row" for="modelClaude">
+          <input id="modelClaude" type="radio" name="generateModel" value="claude">
+          <span>Claude</span>
+        </label>
+      </div>
+      <div id="claudeSteps" class="claude-steps" hidden>
+        <p class="muted">Do these steps once before generating with Claude:</p>
+        <ol class="howto">
+          <li>Open <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer">console.anthropic.com</a> and create or sign in to your account.</li>
+          <li>Add billing if Anthropic asks for it.</li>
+          <li>Go to API keys and create a key.</li>
+          <li>Open <strong>Sheet settings</strong> and paste the key in <strong>Claude API key</strong>, then save. Or add <code>ANTHROPIC_API_KEY=sk-ant-...</code> to the <code>.env</code> file and restart <code>npm start</code>.</li>
+          <li>Select Claude here and generate.</li>
+        </ol>
+        <p id="claudeKeyHint" class="muted">Claude key is not saved yet.</p>
+      </div>
       <label for="testimonialsBox">Testimonials</label>
       <textarea id="testimonialsBox" rows="6" placeholder="Add testimonials to include on the website. One review per paragraph. Optional first line: reviewer name."></textarea>
       <p class="muted">This text is added to the generation prompt and shown in the testimonials section.</p>
+      <label class="check-row" for="createLogoBox">
+        <input id="createLogoBox" type="checkbox">
+        <span>Create logo</span>
+      </label>
+      <p class="muted">If checked and no Drive logo file is found, a logo is created from the clinic name.</p>
       <button id="generateBtn" type="button" disabled>Generate web app</button>
       <div id="generateProgress" class="generate-progress" hidden>
         <div class="progress-head">
@@ -156,7 +187,7 @@
       <p id="status" class="status" role="status"></p>
       <p id="tokenUsage" class="muted token-usage" hidden></p>
       <details id="plannedPromptBox" class="prompt-box" hidden>
-        <summary>Gemini generation prompt</summary>
+        <summary>Generation prompt</summary>
         <pre id="plannedPromptText"></pre>
       </details>
     </section>

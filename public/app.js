@@ -2,6 +2,13 @@ const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
 const testimonialsBox = document.getElementById("testimonialsBox");
+const createLogoBox = document.getElementById("createLogoBox");
+const modelGemini = document.getElementById("modelGemini");
+const modelClaude = document.getElementById("modelClaude");
+const claudeSteps = document.getElementById("claudeSteps");
+const claudeKeyHint = document.getElementById("claudeKeyHint");
+const anthropicApiKey = document.getElementById("anthropicApiKey");
+const anthropicKeyStatus = document.getElementById("anthropicKeyStatus");
 const downloadBtn = document.getElementById("downloadBtn");
 const generateProgress = document.getElementById("generateProgress");
 const generateProgressBar = document.getElementById("generateProgressBar");
@@ -80,7 +87,7 @@ function setTokenUsage(usage) {
   }
 
   tokenUsageEl.hidden = false;
-  tokenUsageEl.textContent = `Tokens this generation: ${usage.totalTokens} total (${usage.promptTokens} input, ${usage.outputTokens} output). Remaining balance is not provided by Gemini.`;
+  tokenUsageEl.textContent = `Tokens this generation: ${usage.totalTokens} total (${usage.promptTokens} input, ${usage.outputTokens} output). Remaining balance is not provided by the model.`;
 }
 
 function setPlannedPrompt(prompt) {
@@ -119,7 +126,7 @@ async function fetchJson(url, options) {
   } catch (error) {
     const message = String(error?.message || "");
     if (error.name === "TypeError" || /failed to fetch/i.test(message)) {
-      throw new Error("Failed to fetch: the browser lost the connection. Keep npm start running, wait for Gemini to finish (this can take several minutes), then try again.");
+      throw new Error("Failed to fetch: the browser lost the connection. Keep npm start running, wait for generation to finish (this can take several minutes), then try again.");
     }
     throw new Error("Cannot reach the server. Start the app with npm start and try again.");
   }
@@ -164,6 +171,14 @@ function renderConnection(setup) {
   sheetGid.value = setup.gid || "";
   formUrl.value = setup.formUrl || "";
   parentFolderId.value = setup.parentFolderId || "";
+  anthropicApiKey.value = "";
+  anthropicApiKey.placeholder = setup.hasClaudeKey ? "Claude key is saved. Paste a new key to replace it." : "sk-ant-...";
+  anthropicKeyStatus.textContent = setup.hasClaudeKey
+    ? "Claude API key is saved."
+    : "No Claude key saved yet. Add it here or in the .env file.";
+  claudeKeyHint.textContent = setup.hasClaudeKey
+    ? "Claude key is ready. You can generate with Claude."
+    : "Claude key is not saved yet. Follow the steps above.";
 }
 
 function renderClinicOptions(clinics, selectedId) {
@@ -359,7 +374,8 @@ async function saveSetupAndLoad() {
         tab: sheetTab.value,
         gid: sheetGid.value,
         formUrl: formUrl.value,
-        parentFolderId: parentFolderId.value
+        parentFolderId: parentFolderId.value,
+        anthropicApiKey: anthropicApiKey.value
       })
     });
     await loadSetup();
@@ -443,7 +459,9 @@ async function generateWebsite() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clinicId: clinicSelect.value,
-        testimonials: testimonialsBox.value
+        testimonials: testimonialsBox.value,
+        createLogo: createLogoBox.checked,
+        provider: selectedProvider()
       })
     });
     generated = result;
@@ -561,6 +579,19 @@ refreshBtn.addEventListener("click", () => {
   setSetupStatus("Refreshing clinic list...");
   loadClinics(true).catch((error) => setSetupStatus(error.message, true));
 });
+
+function selectedProvider() {
+  return modelClaude.checked ? "claude" : "gemini";
+}
+
+function syncModelUi() {
+  const usingClaude = selectedProvider() === "claude";
+  claudeSteps.hidden = !usingClaude;
+}
+
+modelGemini.addEventListener("change", syncModelUi);
+modelClaude.addEventListener("change", syncModelUi);
+syncModelUi();
 
 generateBtn.addEventListener("click", () => {
   generateWebsite().catch((error) => setStatus(error.message, true));
