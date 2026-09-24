@@ -2,7 +2,6 @@ const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
 const testimonialsBox = document.getElementById("testimonialsBox");
-const createLogoBox = document.getElementById("createLogoBox");
 const modelGemini = document.getElementById("modelGemini");
 const modelClaude = document.getElementById("modelClaude");
 const claudeSteps = document.getElementById("claudeSteps");
@@ -460,7 +459,6 @@ async function generateWebsite() {
       body: JSON.stringify({
         clinicId: clinicSelect.value,
         testimonials: testimonialsBox.value,
-        createLogo: createLogoBox.checked,
         provider: selectedProvider()
       })
     });

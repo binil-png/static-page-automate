@@ -187,7 +187,6 @@ app.post("/api/generate", async (req, res, next) => {
     }
 
     clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
-    clinic.createLogo = req.body?.createLogo === true || req.body?.createLogo === "true";
     clinic.provider = req.body?.provider === "claude" ? "claude" : "gemini";
 
     setGenerateProgress({
