@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bold clinic reference</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Source+Sans+3:wght@400;600&display=swap");
+    body { font-family: "Source Sans 3", sans-serif; }
+    h1, h2, h3 { font-family: Poppins, sans-serif; }
+  </style>
+</head>
+<body class="bg-[#fffef8] text-slate-700">
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+      <a href="#home" class="font-extrabold tracking-tight text-slate-800">Sample Care Clinic</a>
+      <nav class="hidden md:flex gap-6 text-sm font-bold text-slate-600">
+        <a href="#home">Home</a>
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+  <section id="home" class="px-6 py-28 bg-gradient-to-br from-violet-50 via-white to-rose-50">
+    <div class="max-w-6xl mx-auto">
+      <h1 class="text-5xl sm:text-7xl leading-[1.05] max-w-5xl text-slate-800">Big type. Direct care. No extra noise.</h1>
+      <a href="#contact" class="inline-flex mt-10 bg-violet-500 text-white px-6 py-3 font-extrabold rounded-full">Contact</a>
+    </div>
+  </section>
+  <section id="about" class="bg-white py-24 px-6">
+    <div class="max-w-6xl mx-auto grid md:grid-cols-12 gap-8">
+      <h2 class="md:col-span-5 text-5xl text-slate-800">About</h2>
+      <p class="md:col-span-7 md:mt-8 text-xl leading-8">Sample bold about copy. Generated pages must use sheet text only.</p>
+    </div>
+  </section>
+  <section id="services" class="bg-violet-50/50">
+    <article class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-12 gap-8 items-center border-b border-violet-100">
+      <div class="md:col-span-4 w-20 h-20 bg-violet-100 text-violet-700 rounded-3xl flex items-center justify-center"><i data-lucide="zap"></i></div>
+      <div class="md:col-span-8">
+        <h3 class="text-3xl mb-2 text-slate-800">Sample service one</h3>
+        <p>Short sample description.</p>
+      </div>
+    </article>
+    <article class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-12 gap-8 items-center">
+      <div class="md:col-span-4 w-20 h-20 bg-rose-100 text-rose-700 rounded-3xl flex items-center justify-center"><i data-lucide="shield"></i></div>
+      <div class="md:col-span-8">
+        <h3 class="text-3xl mb-2 text-slate-800">Sample service two</h3>
+        <p>Short sample description.</p>
+      </div>
+    </article>
+  </section>
+  <section id="gallery" class="bg-white py-16 px-6">
+    <h2 class="max-w-6xl mx-auto text-4xl mb-8 text-slate-800">Gallery</h2>
+    <div class="max-w-6xl mx-auto flex gap-4 overflow-x-auto">
+      <div class="min-w-[70%] h-72 bg-violet-50 rounded-3xl"></div>
+      <div class="min-w-[70%] h-72 bg-rose-50 rounded-3xl"></div>
+    </div>
+  </section>
+  <section id="testimonials" class="bg-rose-50/40 py-24 px-6">
+    <div class="max-w-6xl mx-auto flex gap-6 overflow-x-auto">
+      <article class="min-w-[320px] text-3xl leading-snug text-slate-800">“Sample oversized quote.”</article>
+      <article class="min-w-[320px] text-3xl leading-snug text-slate-800">“Sample oversized quote.”</article>
+    </div>
+  </section>
+  <section id="contact" class="grid md:grid-cols-2">
+    <div class="bg-violet-50 p-10 md:p-16 space-y-4">
+      <h2 class="text-4xl text-slate-800">Contact</h2>
+      <p>12 Example Street, Sample City</p>
+      <p>+91 00000 00000</p>
+      <p>hello@sampleclinic.example</p>
+    </div>
+    <form class="bg-white p-10 md:p-16 space-y-4">
+      <h3 class="text-2xl font-extrabold text-slate-800">Send a message</h3>
+      <input name="name" class="w-full bg-violet-50 p-3 rounded-2xl" placeholder="Name">
+      <input name="email" type="email" class="w-full bg-violet-50 p-3 rounded-2xl" placeholder="Email">
+      <input name="address" class="w-full bg-violet-50 p-3 rounded-2xl" placeholder="Address">
+      <input name="subject" class="w-full bg-violet-50 p-3 rounded-2xl" placeholder="Subject">
+      <textarea name="message" class="w-full bg-violet-50 p-3 rounded-2xl min-h-28" placeholder="Message"></textarea>
+      <button class="bg-violet-500 text-white px-6 py-3 font-extrabold rounded-full">Send message</button>
+    </form>
+  </section>
+  <footer class="bg-violet-50 px-6 py-8 text-sm text-slate-500">Sample Care Clinic</footer>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal clinic reference</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Nunito:wght@400;600&display=swap");
+    body { font-family: Nunito, sans-serif; }
+    h1, h2, h3 { font-family: "DM Sans", sans-serif; }
+  </style>
+</head>
+<body class="bg-white text-slate-600">
+  <header class="border-b border-slate-100">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#home" class="text-sm font-semibold tracking-tight text-slate-800">Sample Care Clinic</a>
+      <nav class="flex gap-6 text-sm">
+        <a href="#home" class="text-slate-800">Home</a>
+        <a href="#about">About</a>
+        <a href="#services">Services</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+  <section id="home" class="max-w-5xl mx-auto px-6 py-32 bg-gradient-to-b from-sky-50 to-white">
+    <p class="text-[11px] uppercase tracking-[0.22em] text-sky-700 mb-6">Clinic</p>
+    <h1 class="text-5xl sm:text-6xl font-semibold tracking-tight max-w-3xl text-slate-800">Clear care. Quiet rooms. Simple next steps.</h1>
+    <a href="#contact" class="inline-block mt-10 text-sm font-bold text-sky-700 underline underline-offset-4">Contact</a>
+  </section>
+  <section id="about" class="max-w-3xl mx-auto px-6 py-20">
+    <h2 class="text-xs uppercase tracking-[0.2em] text-sky-700 mb-6">About</h2>
+    <p class="text-xl leading-8">Sample minimal about copy. Replace with sheet text during generation.</p>
+  </section>
+  <section id="services" class="max-w-5xl mx-auto px-6 py-20">
+    <h2 class="text-xs uppercase tracking-[0.2em] text-sky-700 mb-10">Services</h2>
+    <div class="grid md:grid-cols-2 gap-x-16 gap-y-12">
+      <article>
+        <div class="w-8 h-8 mb-4 text-sky-600"><i data-lucide="circle"></i></div>
+        <h3 class="font-medium mb-2 text-slate-800">Sample service one</h3>
+        <p class="text-sm">Short sample description.</p>
+      </article>
+      <article>
+        <div class="w-8 h-8 mb-4 text-sky-600"><i data-lucide="circle"></i></div>
+        <h3 class="font-medium mb-2 text-slate-800">Sample service two</h3>
+        <p class="text-sm">Short sample description.</p>
+      </article>
+    </div>
+  </section>
+  <section id="gallery" class="max-w-5xl mx-auto px-6 py-20">
+    <h2 class="text-xs uppercase tracking-[0.2em] text-sky-700 mb-10">Gallery</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div class="aspect-square bg-sky-50 rounded-2xl"></div>
+      <div class="aspect-square bg-slate-50 rounded-2xl"></div>
+      <div class="aspect-square bg-sky-50 rounded-2xl"></div>
+      <div class="aspect-square bg-slate-50 rounded-2xl"></div>
+    </div>
+  </section>
+  <section id="testimonials" class="max-w-5xl mx-auto px-6 py-20">
+    <h2 class="text-xs uppercase tracking-[0.2em] text-sky-700 mb-8">Testimonials</h2>
+    <div class="flex gap-4 overflow-x-auto">
+      <article class="min-w-[240px] border border-slate-100 p-5 text-sm rounded-2xl bg-sky-50/50">“Sample review.”</article>
+      <article class="min-w-[240px] border border-slate-100 p-5 text-sm rounded-2xl bg-sky-50/50">“Sample review.”</article>
+    </div>
+  </section>
+  <section id="contact" class="max-w-xl mx-auto px-6 py-20">
+    <h2 class="text-xs uppercase tracking-[0.2em] text-sky-700 mb-8">Contact</h2>
+    <div class="space-y-2 text-sm mb-10">
+      <p>12 Example Street, Sample City</p>
+      <p>+91 00000 00000</p>
+      <p>hello@sampleclinic.example</p>
+    </div>
+    <form class="space-y-4">
+      <h3 class="font-medium text-slate-800">Send a message</h3>
+      <input name="name" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" placeholder="Name">
+      <input name="email" type="email" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" placeholder="Email">
+      <input name="address" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" placeholder="Address">
+      <input name="subject" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm" placeholder="Subject">
+      <textarea name="message" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm min-h-28" placeholder="Message"></textarea>
+      <button class="text-sm font-bold text-sky-700 underline underline-offset-4">Send message</button>
+    </form>
+  </section>
+  <footer class="max-w-5xl mx-auto px-6 py-8 text-xs text-slate-400">Sample Care Clinic</footer>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
