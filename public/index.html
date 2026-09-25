@@ -79,7 +79,7 @@
 
       <label for="openaiApiKey">ChatGPT API key</label>
       <input id="openaiApiKey" type="password" autocomplete="off" placeholder="sk-...">
-      <p id="openaiKeyStatus" class="muted">No ChatGPT key saved yet.</p>
+      <p id="openaiKeyStatus" class="muted">Not required. ChatGPT (free) uses the Gemini free models.</p>
 
       <button id="saveSetupBtn" type="button">Save and load clinics</button>
       <p id="setupStatus" class="status" role="status"></p>
@@ -160,13 +160,13 @@
         </label>
         <label class="check-row" for="modelChatGpt">
           <input id="modelChatGpt" type="radio" name="generateModel" value="chatgpt">
-          <span>ChatGPT</span>
+          <span>ChatGPT (free)</span>
         </label>
       </div>
       <div id="claudeSteps" class="claude-steps" hidden>
         <div id="tokenDetails" class="token-details">
           <h3 id="tokenDetailsTitle">Token details</h3>
-          <p id="tokenRates" class="muted">Token rates appear here after you select Claude or ChatGPT.</p>
+          <p id="tokenRates" class="muted">Token rates appear here after you select Claude or ChatGPT (free).</p>
           <dl>
             <div>
               <dt>Last generation</dt>

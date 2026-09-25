@@ -112,7 +112,7 @@ function providerTitle(provider) {
     return "Claude";
   }
   if (provider === "chatgpt") {
-    return "ChatGPT";
+    return "ChatGPT (free)";
   }
   return "Gemini";
 }
@@ -241,9 +241,7 @@ function renderConnection(setup) {
     : "No Claude key saved yet. Add it here or in the .env file.";
   openaiApiKey.value = "";
   openaiApiKey.placeholder = setup.hasChatGptKey ? "ChatGPT key is saved. Paste a new key to replace it." : "sk-...";
-  openaiKeyStatus.textContent = setup.hasChatGptKey
-    ? "ChatGPT API key is saved."
-    : "No ChatGPT key saved yet. Add it here or in the .env file.";
+  openaiKeyStatus.textContent = "Not required. ChatGPT (free) uses GEMINI_API_KEY and the Gemini free models.";
 }
 
 function renderClinicOptions(clinics, selectedId) {
