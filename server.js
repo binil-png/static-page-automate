@@ -3,7 +3,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from "./lib/clinics.js";
 import { createClinicFolder, findClinicFolder } from "./lib/clinicFolder.js";
-import { generateClinicPage } from "./lib/generate.js";
+import { deleteCustomPalette, saveCustomPalette } from "./lib/customPalettes.js";
+import { generateClinicPage, listColorPalettes } from "./lib/generate.js";
 import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
 import { getAnthropicApiKey, getOpenAiApiKey, getShareSettings, getSheetSettings, normalizeProvider, saveSetupConfig } from "./lib/setupConfig.js";
@@ -129,6 +130,36 @@ app.get("/api/usage", async (req, res, next) => {
   }
 });
 
+app.get("/api/palettes", async (_req, res, next) => {
+  try {
+    res.json(await listColorPalettes());
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/palettes", async (req, res, next) => {
+  try {
+    const palette = await saveCustomPalette({
+      name: req.body?.name,
+      deep: req.body?.deep,
+      mid: req.body?.mid
+    });
+    res.json({ palette, palettes: await listColorPalettes() });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete("/api/palettes/:id", async (req, res, next) => {
+  try {
+    await deleteCustomPalette(req.params.id);
+    res.json({ palettes: await listColorPalettes() });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/api/clinics", async (req, res, next) => {
   try {
     const clinics = await listClinics(req.query.refresh === "1");
@@ -200,6 +231,7 @@ app.post("/api/generate", async (req, res, next) => {
 
     clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
     clinic.provider = normalizeProvider(req.body?.provider);
+    clinic.paletteId = String(req.body?.paletteId || "").trim();
 
     setGenerateProgress({
       clinicId: clinic.id,

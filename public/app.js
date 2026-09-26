@@ -2,6 +2,12 @@ const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
 const testimonialsBox = document.getElementById("testimonialsBox");
+const paletteChoice = document.getElementById("paletteChoice");
+const customPaletteName = document.getElementById("customPaletteName");
+const customPaletteDeep = document.getElementById("customPaletteDeep");
+const customPaletteMid = document.getElementById("customPaletteMid");
+const savePaletteBtn = document.getElementById("savePaletteBtn");
+const paletteSaveStatus = document.getElementById("paletteSaveStatus");
 const modelGemini = document.getElementById("modelGemini");
 const modelClaude = document.getElementById("modelClaude");
 const modelChatGpt = document.getElementById("modelChatGpt");
@@ -524,7 +530,8 @@ async function generateWebsite() {
       body: JSON.stringify({
         clinicId: clinicSelect.value,
         testimonials: testimonialsBox.value,
-        provider: selectedProvider()
+        provider: selectedProvider(),
+        paletteId: selectedPaletteId()
       })
     });
     generated = result;
@@ -646,6 +653,92 @@ refreshBtn.addEventListener("click", () => {
   loadClinics(true).catch((error) => setSetupStatus(error.message, true));
 });
 
+function selectedPaletteId() {
+  const chosen = paletteChoice?.querySelector("input[name='colorPalette']:checked");
+  return chosen ? chosen.value : "";
+}
+
+function renderPalettes(palettes) {
+  if (!paletteChoice) {
+    return;
+  }
+
+  const current = selectedPaletteId();
+  const auto = `<label class="palette-option${current ? "" : " is-selected"}">
+      <input type="radio" name="colorPalette" value=""${current ? "" : " checked"}>
+      <span class="palette-swatch palette-swatch-auto" aria-hidden="true"></span>
+      <span>Auto</span>
+    </label>`;
+  const options = (palettes || []).map((palette) => (
+    `<label class="palette-option${current === palette.id ? " is-selected" : ""}">
+      <input type="radio" name="colorPalette" value="${palette.id}"${current === palette.id ? " checked" : ""}>
+      <span class="palette-swatch" style="--swatch:${palette.deep}" aria-hidden="true"></span>
+      <span>${palette.label}</span>
+      ${palette.custom ? `<button type="button" class="palette-delete" data-palette-id="${palette.id}" aria-label="Delete ${palette.label}">×</button>` : ""}
+    </label>`
+  )).join("");
+  paletteChoice.innerHTML = `${auto}${options}`;
+}
+
+function syncPaletteUi() {
+  paletteChoice?.querySelectorAll(".palette-option").forEach((option) => {
+    const input = option.querySelector("input");
+    option.classList.toggle("is-selected", Boolean(input?.checked));
+  });
+}
+
+async function loadPalettes(selectId) {
+  const palettes = await fetchJson("/api/palettes");
+  renderPalettes(palettes);
+  if (selectId) {
+    const input = paletteChoice?.querySelector(`input[name="colorPalette"][value="${selectId}"]`);
+    if (input) {
+      input.checked = true;
+    }
+  }
+  syncPaletteUi();
+}
+
+async function saveCustomPalette() {
+  if (!savePaletteBtn) {
+    return;
+  }
+  savePaletteBtn.disabled = true;
+  paletteSaveStatus.textContent = "Saving palette...";
+  try {
+    const result = await fetchJson("/api/palettes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: customPaletteName.value,
+        deep: customPaletteDeep.value,
+        mid: customPaletteMid.value
+      })
+    });
+    customPaletteName.value = "";
+    await loadPalettes(result.palette?.id);
+    paletteSaveStatus.textContent = `${result.palette.label} saved. It is selected for the next generation.`;
+  } catch (error) {
+    paletteSaveStatus.textContent = error.message;
+  } finally {
+    savePaletteBtn.disabled = false;
+  }
+}
+
+async function deleteCustomPalette(id) {
+  const result = await fetchJson(`/api/palettes/${encodeURIComponent(id)}`, { method: "DELETE" });
+  const current = selectedPaletteId();
+  renderPalettes(result.palettes);
+  if (current === id) {
+    const auto = paletteChoice?.querySelector('input[name="colorPalette"][value=""]');
+    if (auto) {
+      auto.checked = true;
+    }
+  }
+  syncPaletteUi();
+  paletteSaveStatus.textContent = "Custom palette removed.";
+}
+
 function selectedProvider() {
   if (modelClaude.checked) {
     return "claude";
@@ -682,8 +775,31 @@ createFolderBtn.addEventListener("click", () => {
   });
 });
 
+if (paletteChoice) {
+  paletteChoice.addEventListener("change", syncPaletteUi);
+  paletteChoice.addEventListener("click", (event) => {
+    const button = event.target.closest(".palette-delete");
+    if (!button) {
+      return;
+    }
+    event.preventDefault();
+    deleteCustomPalette(button.dataset.paletteId).catch((error) => {
+      paletteSaveStatus.textContent = error.message;
+    });
+  });
+}
+
+if (savePaletteBtn) {
+  savePaletteBtn.addEventListener("click", () => {
+    saveCustomPalette().catch((error) => {
+      paletteSaveStatus.textContent = error.message;
+    });
+  });
+}
+
 loadSetup()
   .then((setup) => {
+    loadPalettes().catch(() => {});
     if (setup.ready) {
       return loadClinics();
     }

@@ -187,6 +187,36 @@
           </dl>
         </div>
       </div>
+      <label>Color palette</label>
+      <div id="paletteChoice" class="palette-choice">
+        <label class="palette-option is-selected">
+          <input type="radio" name="colorPalette" value="" checked>
+          <span class="palette-swatch palette-swatch-auto" aria-hidden="true"></span>
+          <span>Auto</span>
+        </label>
+      </div>
+      <p class="muted">Select a palette to use it on the page. Leave Auto to use the uploaded logo colors when a logo file exists.</p>
+      <details id="paletteCustomBox" class="palette-custom">
+        <summary>Customize palette</summary>
+        <div class="field-row">
+          <div>
+            <label for="customPaletteName">Palette name</label>
+            <input id="customPaletteName" type="text" maxlength="32" placeholder="Clinic teal">
+          </div>
+          <div class="palette-color-fields">
+            <div>
+              <label for="customPaletteDeep">Main color</label>
+              <input id="customPaletteDeep" type="color" value="#0d9488">
+            </div>
+            <div>
+              <label for="customPaletteMid">Accent color</label>
+              <input id="customPaletteMid" type="color" value="#2dd4bf">
+            </div>
+          </div>
+        </div>
+        <button id="savePaletteBtn" type="button" class="secondary">Save custom palette</button>
+        <p id="paletteSaveStatus" class="muted">Saved palettes appear in the list above and can be selected for generation.</p>
+      </details>
       <label for="testimonialsBox">Testimonials</label>
       <textarea id="testimonialsBox" rows="6" placeholder="Add testimonials to include on the website. One review per paragraph. Optional first line: reviewer name."></textarea>
       <p class="muted">If you add text here, a swipeable testimonials row is added to the page. One review per paragraph. Optional first line: reviewer name.</p>
