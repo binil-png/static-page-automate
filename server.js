@@ -2,7 +2,7 @@ import express from "express";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from "./lib/clinics.js";
-import { createClinicFolder, findClinicFolder } from "./lib/clinicFolder.js";
+import { createClinicFolder, findClinicFolder, countFolderImages } from "./lib/clinicFolder.js";
 import { deleteCustomPalette, saveCustomPalette } from "./lib/customPalettes.js";
 import { generateClinicPage, listColorPalettes } from "./lib/generate.js";
 import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
@@ -189,7 +189,9 @@ app.get("/api/clinics/:id/folder", async (req, res, next) => {
       res.status(404).json({ error: "Clinic not found." });
       return;
     }
-    res.json(await findClinicFolder(clinic));
+    const folder = await findClinicFolder(clinic);
+    const imageCount = folder.exists && folder.folderId ? await countFolderImages(folder.folderId) : 0;
+    res.json({ ...folder, imageCount });
   } catch (error) {
     next(error);
   }
@@ -202,7 +204,7 @@ app.post("/api/clinics/:id/folder", async (req, res, next) => {
       res.status(404).json({ error: "Clinic not found." });
       return;
     }
-    res.json(await createClinicFolder(clinic));
+    res.json({ ...(await createClinicFolder(clinic)), imageCount: 0 });
   } catch (error) {
     next(error);
   }
@@ -232,6 +234,7 @@ app.post("/api/generate", async (req, res, next) => {
     clinic.manualTestimonials = String(req.body?.testimonials || "").trim().slice(0, 8000);
     clinic.provider = normalizeProvider(req.body?.provider);
     clinic.paletteId = String(req.body?.paletteId || "").trim();
+    clinic.useAiImages = Boolean(req.body?.useAiImages);
 
     setGenerateProgress({
       clinicId: clinic.id,

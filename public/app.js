@@ -8,6 +8,8 @@ const customPaletteDeep = document.getElementById("customPaletteDeep");
 const customPaletteMid = document.getElementById("customPaletteMid");
 const savePaletteBtn = document.getElementById("savePaletteBtn");
 const paletteSaveStatus = document.getElementById("paletteSaveStatus");
+const aiImagesCheck = document.getElementById("aiImagesCheck");
+const aiImagesHint = document.getElementById("aiImagesHint");
 const modelGemini = document.getElementById("modelGemini");
 const modelClaude = document.getElementById("modelClaude");
 const modelChatGpt = document.getElementById("modelChatGpt");
@@ -531,7 +533,8 @@ async function generateWebsite() {
         clinicId: clinicSelect.value,
         testimonials: testimonialsBox.value,
         provider: selectedProvider(),
-        paletteId: selectedPaletteId()
+        paletteId: selectedPaletteId(),
+        useAiImages: Boolean(aiImagesCheck?.checked)
       })
     });
     generated = result;

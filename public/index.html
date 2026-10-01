@@ -195,7 +195,7 @@
           <span>Auto</span>
         </label>
       </div>
-      <p class="muted">Select a palette to use it on the page. Leave Auto to use the uploaded logo colors when a logo file exists.</p>
+      <p class="muted">Select a palette (including a custom one) to use those colors on the page, even when a logo is uploaded. Leave Auto to use logo colors when a logo file exists.</p>
       <details id="paletteCustomBox" class="palette-custom">
         <summary>Customize palette</summary>
         <div class="field-row">
@@ -220,6 +220,11 @@
       <label for="testimonialsBox">Testimonials</label>
       <textarea id="testimonialsBox" rows="6" placeholder="Add testimonials to include on the website. One review per paragraph. Optional first line: reviewer name."></textarea>
       <p class="muted">If you add text here, a swipeable testimonials row is added to the page. One review per paragraph. Optional first line: reviewer name.</p>
+      <label class="check-row" for="aiImagesCheck">
+        <input id="aiImagesCheck" type="checkbox">
+        <span>Add AI-generated images</span>
+      </label>
+      <p id="aiImagesHint" class="muted">Check this to create AI clinic photos and add them to the page, including when Drive already has images.</p>
       <button id="generateBtn" type="button" disabled>Generate web app</button>
       <div id="generateProgress" class="generate-progress" hidden>
         <div class="progress-head">

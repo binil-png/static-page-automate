@@ -234,6 +234,11 @@ textarea {
   margin: 0;
 }
 
+.check-row:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .model-choice {
   display: flex;
   flex-wrap: wrap;
