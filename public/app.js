@@ -1,6 +1,7 @@
 const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
+const stopGenerateBtn = document.getElementById("stopGenerateBtn");
 const testimonialsBox = document.getElementById("testimonialsBox");
 const paletteChoice = document.getElementById("paletteChoice");
 const customPaletteName = document.getElementById("customPaletteName");
@@ -475,11 +476,22 @@ function setGenerateProgressUi(percent, step) {
   }
 }
 
+function setStopButtonVisible(show) {
+  if (!stopGenerateBtn) {
+    return;
+  }
+  stopGenerateBtn.hidden = !show;
+  if (show) {
+    stopGenerateBtn.disabled = false;
+  }
+}
+
 function hideGenerateProgress() {
   if (progressTimer) {
     clearInterval(progressTimer);
     progressTimer = null;
   }
+  setStopButtonVisible(false);
   generateProgress.hidden = true;
   generateProgressBar.style.width = "0%";
   generateProgressPct.textContent = "0%";
@@ -505,6 +517,7 @@ function startGenerateProgress() {
   if (progressTimer) {
     clearInterval(progressTimer);
   }
+  setStopButtonVisible(true);
   setGenerateProgressUi(4, "Starting website generation...");
   progressTimer = setInterval(() => {
     pollGenerateProgress();
@@ -521,6 +534,7 @@ async function generateWebsite() {
   }
 
   generateBtn.disabled = true;
+  setStopButtonVisible(true);
   startGenerateProgress();
   setStatus("Generating website. This can take several minutes...");
   setTokenUsage(null);
@@ -555,13 +569,31 @@ async function generateWebsite() {
     }
   } catch (error) {
     hideGenerateProgress();
-    setStatus(error.message, true);
+    const stopped = /generation was stopped/i.test(error.message);
+    setStatus(error.message, !stopped);
   } finally {
     if (progressTimer) {
       clearInterval(progressTimer);
       progressTimer = null;
     }
+    setStopButtonVisible(false);
     generateBtn.disabled = !clinicSelect.value;
+  }
+}
+
+async function stopGeneration() {
+  if (!stopGenerateBtn || stopGenerateBtn.hidden) {
+    return;
+  }
+  stopGenerateBtn.disabled = true;
+  setGenerateProgressUi(displayedPercent, "Stopping generation...");
+  setStatus("Stopping generation...");
+  try {
+    const result = await fetchJson("/api/generate/stop", { method: "POST" });
+    setStatus(result.message || "Stopping generation.");
+  } catch (error) {
+    stopGenerateBtn.disabled = false;
+    setStatus(error.message, true);
   }
 }
 
@@ -771,6 +803,12 @@ syncModelUi();
 generateBtn.addEventListener("click", () => {
   generateWebsite().catch((error) => setStatus(error.message, true));
 });
+
+if (stopGenerateBtn) {
+  stopGenerateBtn.addEventListener("click", () => {
+    stopGeneration().catch((error) => setStatus(error.message, true));
+  });
+}
 
 createFolderBtn.addEventListener("click", () => {
   createSelectedClinicFolder().catch((error) => {

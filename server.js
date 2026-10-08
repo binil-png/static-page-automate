@@ -16,6 +16,7 @@ const generatedPages = new Map();
 const GENERATED_DIR = path.join(process.cwd(), "generated");
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 let generateInProgress = false;
+let generateAbort = null;
 let generateProgress = {
   active: false,
   percent: 0,
@@ -29,6 +30,12 @@ function setGenerateProgress(update) {
 }
 
 function toPublicError(error) {
+  if (error?.name === "AbortError" || error?.status === 499 || /generation was stopped/i.test(String(error?.message || ""))) {
+    return {
+      status: 409,
+      message: "Website generation was stopped."
+    };
+  }
   const googleMessage = error.errors?.[0]?.message
     || error.response?.data?.error?.message
     || error.cause?.message;
@@ -217,6 +224,7 @@ app.post("/api/generate", async (req, res, next) => {
   }
 
   generateInProgress = true;
+  generateAbort = new AbortController();
   setGenerateProgress({
     active: true,
     percent: 5,
@@ -244,7 +252,7 @@ app.post("/api/generate", async (req, res, next) => {
     });
     const generated = await generateClinicPage(clinic, (progress) => {
       setGenerateProgress(progress);
-    });
+    }, generateAbort.signal);
     setGenerateProgress({ percent: 96, step: "Saving the website..." });
     const fileName = `${clinic.id}-index.html`;
     await mkdir(GENERATED_DIR, { recursive: true });
@@ -268,12 +276,26 @@ app.post("/api/generate", async (req, res, next) => {
     next(error);
   } finally {
     generateInProgress = false;
+    generateAbort = null;
     setGenerateProgress({
       active: false,
       percent: generateProgress.percent === 100 ? 100 : 0,
       step: generateProgress.percent === 100 ? "Website ready." : ""
     });
   }
+});
+
+app.post("/api/generate/stop", (_req, res) => {
+  if (!generateInProgress || !generateAbort) {
+    res.json({ stopped: false, message: "No generation is running." });
+    return;
+  }
+  setGenerateProgress({
+    step: "Stopping generation...",
+    stopping: true
+  });
+  generateAbort.abort();
+  res.json({ stopped: true, message: "Stopping generation." });
 });
 
 app.get("/api/generate/progress", (_req, res) => {

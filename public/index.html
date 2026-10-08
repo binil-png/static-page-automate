@@ -225,7 +225,10 @@
         <span>Add AI-generated images</span>
       </label>
       <p id="aiImagesHint" class="muted">Check this to create clinic photos with the selected model. Gemini uses Gemini. ChatGPT uses ChatGPT. Claude cannot create images.</p>
-      <button id="generateBtn" type="button" disabled>Generate web app</button>
+      <div class="generate-actions">
+        <button id="generateBtn" type="button" disabled>Generate web app</button>
+        <button id="stopGenerateBtn" type="button" class="secondary" hidden>Stop generation</button>
+      </div>
       <div id="generateProgress" class="generate-progress" hidden>
         <div class="progress-head">
           <p id="generateProgressLabel">Starting...</p>
