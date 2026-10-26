@@ -437,8 +437,39 @@ function showPreview(previewUrl, downloadUrl) {
   emptyPreview.hidden = true;
   downloadBtn.hidden = false;
   downloadBtn.href = downloadUrl;
-  downloadBtn.download = "index.html";
+  downloadBtn.removeAttribute("download");
   setCurrentStep(3);
+}
+
+async function downloadGeneratedPage(event) {
+  event.preventDefault();
+  const url = downloadBtn?.href;
+  if (!url || downloadBtn.hidden || url === window.location.href || url.endsWith("#")) {
+    setStatus("Generate the website before downloading.", true);
+    return;
+  }
+
+  setStatus("Downloading index.html...");
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text.trim() || "The generated file was not available to download.");
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "index.html";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+    setStatus("Download started.");
+    clearAppError();
+  } catch (error) {
+    setStatus(error.message || "Could not download the HTML file.", true);
+  }
 }
 
 async function uploadCredentials(file) {
@@ -992,6 +1023,12 @@ syncModelUi();
 generateBtn.addEventListener("click", () => {
   generateWebsite().catch((error) => setStatus(error.message, true));
 });
+
+if (downloadBtn) {
+  downloadBtn.addEventListener("click", (event) => {
+    downloadGeneratedPage(event).catch((error) => setStatus(error.message, true));
+  });
+}
 
 if (editPageBtn) {
   editPageBtn.addEventListener("click", () => {
