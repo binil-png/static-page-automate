@@ -229,7 +229,7 @@ app.post("/api/clinics/:id/folder", async (req, res, next) => {
 
 app.post("/api/generate", async (req, res, next) => {
   if (generateInProgress) {
-    res.status(409).json({ error: "A website is already being generated. Wait for it to finish, then try again." });
+    res.status(409).json({ error: "A website is already being generated or edited. Wait for it to finish, then try again." });
     return;
   }
 
@@ -306,6 +306,86 @@ app.post("/api/generate", async (req, res, next) => {
     generateInProgress = false;
     generateAbort = null;
     next(error);
+  }
+});
+
+app.post("/api/edit", async (req, res, next) => {
+  if (generateInProgress) {
+    res.status(409).json({ error: "A website is already being generated or edited. Wait for it to finish, then try again." });
+    return;
+  }
+
+  generateInProgress = true;
+  generateAbort = new AbortController();
+  setGenerateProgress({
+    active: true,
+    percent: 5,
+    step: "Starting page edit...",
+    clinicId: req.body?.clinicId || "",
+    clinicName: ""
+  });
+  try {
+    const clinic = await getClinicById(req.body?.clinicId);
+    if (!clinic) {
+      res.status(404).json({ error: "Select a clinic from the list." });
+      return;
+    }
+
+    const html = String(req.body?.html || "");
+    if (!html.trim()) {
+      res.status(400).json({ error: "Upload an HTML file to edit." });
+      return;
+    }
+    if (html.length > 25 * 1024 * 1024) {
+      res.status(400).json({ error: "The HTML file is too large to edit." });
+      return;
+    }
+
+    clinic.provider = normalizeProvider(req.body?.provider);
+    setGenerateProgress({
+      clinicId: clinic.id,
+      clinicName: clinic.clinicName,
+      percent: 8,
+      step: "Loading clinic details..."
+    });
+    const edited = await editClinicPage(
+      clinic,
+      html,
+      String(req.body?.prompt || "").trim().slice(0, 8000),
+      (progress) => {
+        setGenerateProgress(progress);
+      },
+      generateAbort.signal
+    );
+    setGenerateProgress({ percent: 96, step: "Saving the edited website..." });
+    const fileName = `${clinic.id}-index.html`;
+    await mkdir(GENERATED_DIR, { recursive: true });
+    const outputPath = path.join(GENERATED_DIR, fileName);
+    await writeFile(outputPath, edited.html, "utf8");
+    generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+    const tokenDetails = await recordTokenUsage(clinic.provider, edited.usage, clinic);
+    setGenerateProgress({ percent: 100, step: "Edited website ready." });
+    res.json({
+      clinicId: clinic.id,
+      clinicName: clinic.clinicName,
+      fileName,
+      previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
+      downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
+      usage: edited.usage,
+      tokenDetails,
+      plannedPrompt: edited.plannedPrompt || "",
+      warnings: edited.warnings || []
+    });
+  } catch (error) {
+    next(error);
+  } finally {
+    generateInProgress = false;
+    generateAbort = null;
+    setGenerateProgress({
+      active: false,
+      percent: generateProgress.percent === 100 ? 100 : 0,
+      step: generateProgress.percent === 100 ? "Edited website ready." : ""
+    });
   }
 });
 
