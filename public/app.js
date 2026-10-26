@@ -2,6 +2,12 @@ const clinicSelect = document.getElementById("clinicSelect");
 const refreshBtn = document.getElementById("refreshBtn");
 const generateBtn = document.getElementById("generateBtn");
 const stopGenerateBtn = document.getElementById("stopGenerateBtn");
+const editHtmlFile = document.getElementById("editHtmlFile");
+const editFileStatus = document.getElementById("editFileStatus");
+const editPromptBox = document.getElementById("editPromptBox");
+const editPageBtn = document.getElementById("editPageBtn");
+const stopEditBtn = document.getElementById("stopEditBtn");
+const editStatusEl = document.getElementById("editStatus");
 const testimonialsBox = document.getElementById("testimonialsBox");
 const paletteChoice = document.getElementById("paletteChoice");
 const customPaletteName = document.getElementById("customPaletteName");
@@ -68,6 +74,9 @@ const createFolderBtn = document.getElementById("createFolderBtn");
 const stepItems = document.querySelectorAll(".steps li");
 
 let generated = null;
+let uploadedHtml = "";
+let uploadedHtmlName = "";
+let uploadedPreviewUrl = "";
 let folderRequestId = 0;
 let progressTimer = null;
 let displayedPercent = 0;
@@ -93,6 +102,14 @@ function setMessage(element, message, isError = false) {
 
 function setStatus(message, isError = false) {
   setMessage(statusEl, message, isError);
+}
+
+function setEditStatus(message, isError = false) {
+  if (editStatusEl) {
+    setMessage(editStatusEl, message, isError);
+  } else {
+    setStatus(message, isError);
+  }
 }
 
 function formatUsd(value) {
@@ -355,6 +372,9 @@ function renderClinicDetails(clinic) {
   if (!clinic) {
     clinicDetails.hidden = true;
     generateBtn.disabled = true;
+    if (editPageBtn) {
+      editPageBtn.disabled = true;
+    }
     resetFolderUi("Select a clinic to check its Drive folder.");
     return;
   }
@@ -367,6 +387,7 @@ function renderClinicDetails(clinic) {
   document.getElementById("detailTiming").textContent = textOrDash(clinic.timing);
   clinicDetails.hidden = false;
   generateBtn.disabled = false;
+  syncEditButton();
 }
 
 async function loadSelectedClinic() {
@@ -402,6 +423,9 @@ async function loadClinics(forceRefresh = false) {
 
   const clinics = await fetchJson(forceRefresh ? "/api/clinics?refresh=1" : "/api/clinics");
   renderClinicOptions(clinics, selectedId);
+  if (editPageBtn) {
+    editPageBtn.disabled = true;
+  }
   await loadSelectedClinic();
   setSetupStatus(clinics.length ? `${clinics.length} clinics loaded.` : "No clinics found in the sheet.");
   setCurrentStep(clinicSelect.value ? 2 : 1);
@@ -477,12 +501,138 @@ function setGenerateProgressUi(percent, step) {
 }
 
 function setStopButtonVisible(show) {
-  if (!stopGenerateBtn) {
+  [stopGenerateBtn, stopEditBtn].forEach((button) => {
+    if (!button) {
+      return;
+    }
+    button.hidden = !show;
+    if (show) {
+      button.disabled = false;
+    }
+  });
+}
+
+function syncEditButton() {
+  if (!editPageBtn) {
     return;
   }
-  stopGenerateBtn.hidden = !show;
-  if (show) {
-    stopGenerateBtn.disabled = false;
+  editPageBtn.disabled = !clinicSelect.value || !uploadedHtml;
+}
+
+function revokeUploadedPreview() {
+  if (uploadedPreviewUrl) {
+    URL.revokeObjectURL(uploadedPreviewUrl);
+    uploadedPreviewUrl = "";
+  }
+}
+
+function showUploadedPreview() {
+  if (!uploadedHtml) {
+    return;
+  }
+  revokeUploadedPreview();
+  uploadedPreviewUrl = URL.createObjectURL(new Blob([uploadedHtml], { type: "text/html" }));
+  preview.src = uploadedPreviewUrl;
+  preview.hidden = false;
+  emptyPreview.hidden = true;
+  downloadBtn.hidden = true;
+  setCurrentStep(2);
+}
+
+async function loadUploadedHtml(file) {
+  if (!file) {
+    uploadedHtml = "";
+    uploadedHtmlName = "";
+    editFileStatus.textContent = "No HTML file selected.";
+    syncEditButton();
+    return;
+  }
+  const text = await file.text();
+  if (!text.trim() || !/<html[\s>]|<!DOCTYPE html/i.test(text)) {
+    uploadedHtml = "";
+    uploadedHtmlName = "";
+    editFileStatus.textContent = "Choose a complete HTML file.";
+    syncEditButton();
+    throw new Error("Upload a complete HTML file.");
+  }
+  uploadedHtml = text;
+  uploadedHtmlName = file.name || "index.html";
+  editFileStatus.textContent = `${uploadedHtmlName} loaded. Select a clinic and click Edit page.`;
+  syncEditButton();
+  showUploadedPreview();
+  setEditStatus(`${uploadedHtmlName} is ready to edit.`);
+}
+
+async function editWebsite() {
+  if (!clinicSelect.value) {
+    setEditStatus("Select a clinic first.", true);
+    return;
+  }
+  if (!uploadedHtml) {
+    setEditStatus("Upload an HTML file first.", true);
+    return;
+  }
+
+  generateBtn.disabled = true;
+  if (editPageBtn) {
+    editPageBtn.disabled = true;
+  }
+  setStopButtonVisible(true);
+  startGenerateProgress();
+  setGenerateProgressUi(4, "Starting page edit...");
+  setStatus("Editing the uploaded page. This can take several minutes...");
+  setEditStatus("Editing the uploaded page...");
+  setTokenUsage(null);
+  setPlannedPrompt("");
+  setCurrentStep(2);
+
+  try {
+    const result = await fetchJson("/api/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clinicId: clinicSelect.value,
+        html: uploadedHtml,
+        prompt: editPromptBox?.value || "",
+        provider: selectedProvider()
+      })
+    });
+    generated = result;
+    try {
+      uploadedHtml = await (await fetch(result.previewUrl)).text();
+      uploadedHtmlName = "edited-index.html";
+      editFileStatus.textContent = "Edited page is loaded. Add another prompt and click Edit page to change it again.";
+    } catch {
+      uploadedHtml = "";
+      editFileStatus.textContent = "Edited page is ready. Upload the HTML file again to make another change.";
+    }
+    setGenerateProgressUi(100, "Edited website ready.");
+    showPreview(result.previewUrl, result.downloadUrl);
+    setStatus(`${result.clinicName} page is edited.`);
+    setEditStatus(`${result.clinicName} page is edited.`);
+    setTokenUsage(result.tokenDetails?.last || result.usage);
+    if (result.tokenDetails) {
+      renderTokenDetails(result.tokenDetails);
+    }
+    setPlannedPrompt(result.plannedPrompt);
+    if (result.warnings?.length) {
+      showAppError(result.warnings.join(" "));
+    } else {
+      clearAppError();
+    }
+  } catch (error) {
+    hideGenerateProgress();
+    const stopped = /generation was stopped/i.test(error.message);
+    setStatus(error.message, !stopped);
+    setEditStatus(error.message, !stopped);
+  } finally {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      progressTimer = null;
+    }
+    setStopButtonVisible(false);
+    generateBtn.disabled = !clinicSelect.value;
+    syncEditButton();
   }
 }
 
@@ -556,6 +706,9 @@ async function generateWebsite() {
   }
 
   generateBtn.disabled = true;
+  if (editPageBtn) {
+    editPageBtn.disabled = true;
+  }
   setStopButtonVisible(true);
   startGenerateProgress();
   setStatus("Generating website. This can take several minutes...");
@@ -601,22 +754,35 @@ async function generateWebsite() {
     }
     setStopButtonVisible(false);
     generateBtn.disabled = !clinicSelect.value;
+    syncEditButton();
   }
 }
 
 async function stopGeneration() {
-  if (!stopGenerateBtn || stopGenerateBtn.hidden) {
+  const activeStop = [stopGenerateBtn, stopEditBtn].find((button) => button && !button.hidden);
+  if (!activeStop) {
     return;
   }
-  stopGenerateBtn.disabled = true;
-  setGenerateProgressUi(displayedPercent, "Stopping generation...");
-  setStatus("Stopping generation...");
+  [stopGenerateBtn, stopEditBtn].forEach((button) => {
+    if (button) {
+      button.disabled = true;
+    }
+  });
+  setGenerateProgressUi(displayedPercent, "Stopping...");
+  setStatus("Stopping...");
+  setEditStatus("Stopping...");
   try {
     const result = await fetchJson("/api/generate/stop", { method: "POST" });
-    setStatus(result.message || "Stopping generation.");
+    setStatus(result.message || "Stopping.");
+    setEditStatus(result.message || "Stopping.");
   } catch (error) {
-    stopGenerateBtn.disabled = false;
+    [stopGenerateBtn, stopEditBtn].forEach((button) => {
+      if (button) {
+        button.disabled = false;
+      }
+    });
     setStatus(error.message, true);
+    setEditStatus(error.message, true);
   }
 }
 
@@ -827,9 +993,27 @@ generateBtn.addEventListener("click", () => {
   generateWebsite().catch((error) => setStatus(error.message, true));
 });
 
+if (editPageBtn) {
+  editPageBtn.addEventListener("click", () => {
+    editWebsite().catch((error) => setEditStatus(error.message, true));
+  });
+}
+
+if (editHtmlFile) {
+  editHtmlFile.addEventListener("change", () => {
+    loadUploadedHtml(editHtmlFile.files[0]).catch((error) => setEditStatus(error.message, true));
+  });
+}
+
 if (stopGenerateBtn) {
   stopGenerateBtn.addEventListener("click", () => {
     stopGeneration().catch((error) => setStatus(error.message, true));
+  });
+}
+
+if (stopEditBtn) {
+  stopEditBtn.addEventListener("click", () => {
+    stopGeneration().catch((error) => setEditStatus(error.message, true));
   });
 }
 
