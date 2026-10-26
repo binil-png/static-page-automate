@@ -1,22 +1,27 @@
+import "./lib/loadEnv.js";
 import express from "express";
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from "./lib/clinics.js";
 import { createClinicFolder, findClinicFolder, countFolderImages } from "./lib/clinicFolder.js";
 import { deleteCustomPalette, saveCustomPalette } from "./lib/customPalettes.js";
-import { generateClinicPage, listColorPalettes } from "./lib/generate.js";
-import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
+import { editClinicPage, generateClinicPage, listColorPalettes } from "./lib/generate.js";
+import { getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
+import { generatedDir, getServiceAccountWritePath, runtimeDir } from "./lib/runtimePaths.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
 import { getAnthropicApiKey, getOpenAiApiKey, getShareSettings, getSheetSettings, normalizeProvider, saveSetupConfig } from "./lib/setupConfig.js";
 import { getTokenUsage, recordTokenUsage } from "./lib/tokenUsage.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
 const generatedPages = new Map();
-const GENERATED_DIR = path.join(process.cwd(), "generated");
+const GENERATED_DIR = generatedDir();
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 let generateInProgress = false;
 let generateAbort = null;
+let generateJob = { result: null, error: "" };
 let generateProgress = {
   active: false,
   percent: 0,
@@ -24,6 +29,79 @@ let generateProgress = {
   clinicId: "",
   clinicName: ""
 };
+
+app.set("trust proxy", 1);
+
+function safeClinicId(raw) {
+  const id = String(raw || "").trim();
+  if (!id || id.includes("..") || /[\\/]/.test(id)) {
+    return "";
+  }
+  return id;
+}
+
+function generatedFilePath(clinicId) {
+  return path.join(GENERATED_DIR, `${clinicId}-index.html`);
+}
+
+function rememberGeneratedPage(clinicId, extra = {}) {
+  const outputPath = extra.outputPath || generatedFilePath(clinicId);
+  const page = {
+    fileName: extra.fileName || `${clinicId}-index.html`,
+    clinicName: extra.clinicName || clinicId,
+    outputPath
+  };
+  generatedPages.set(clinicId, page);
+  return page;
+}
+
+function resolveGeneratedPage(rawId) {
+  const clinicId = safeClinicId(rawId);
+  if (!clinicId) {
+    return null;
+  }
+  const mapped = generatedPages.get(clinicId);
+  if (mapped?.outputPath && existsSync(mapped.outputPath)) {
+    return mapped;
+  }
+  const outputPath = generatedFilePath(clinicId);
+  if (!existsSync(outputPath)) {
+    return null;
+  }
+  return rememberGeneratedPage(clinicId, { outputPath });
+}
+
+function restoreGeneratedPagesFromDisk() {
+  let names = [];
+  try {
+    names = readdirSync(GENERATED_DIR);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith("-index.html")) {
+      continue;
+    }
+    const clinicId = name.slice(0, -"-index.html".length);
+    if (!safeClinicId(clinicId)) {
+      continue;
+    }
+    rememberGeneratedPage(clinicId, {
+      fileName: name,
+      outputPath: path.join(GENERATED_DIR, name)
+    });
+  }
+}
+
+function sendGeneratedDownload(res, outputPath) {
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Disposition", "attachment; filename=\"index.html\"");
+  res.sendFile(path.resolve(outputPath), (error) => {
+    if (error && !res.headersSent) {
+      res.status(404).type("text").send("Generate the website before downloading.");
+    }
+  });
+}
 
 function setGenerateProgress(update) {
   generateProgress = { ...generateProgress, ...update };
@@ -47,8 +125,12 @@ function toPublicError(error) {
   };
 }
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(express.static(path.join(process.cwd(), "public")));
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.get("/api/setup", async (_req, res, next) => {
   try {
@@ -83,7 +165,7 @@ app.post("/api/setup/credentials", async (req, res, next) => {
       return;
     }
 
-    await writeFile(getServiceAccountFilePath(), `${JSON.stringify(key, null, 2)}\n`, "utf8");
+    await writeFile(getServiceAccountWritePath(), `${JSON.stringify(key, null, 2)}\n`, "utf8");
     resetGoogleAuth();
     clearClinicCache();
     res.json({ hasCredentials: true, serviceAccountEmail: key.client_email });
@@ -219,19 +301,10 @@ app.post("/api/clinics/:id/folder", async (req, res, next) => {
 
 app.post("/api/generate", async (req, res, next) => {
   if (generateInProgress) {
-    res.status(409).json({ error: "A website is already being generated. Wait for it to finish, then try again." });
+    res.status(409).json({ error: "A website is already being generated or edited. Wait for it to finish, then try again." });
     return;
   }
 
-  generateInProgress = true;
-  generateAbort = new AbortController();
-  setGenerateProgress({
-    active: true,
-    percent: 5,
-    step: "Starting website generation...",
-    clinicId: req.body?.clinicId || "",
-    clinicName: ""
-  });
   try {
     const clinic = await getClinicById(req.body?.clinicId);
     if (!clinic) {
@@ -244,33 +317,136 @@ app.post("/api/generate", async (req, res, next) => {
     clinic.paletteId = String(req.body?.paletteId || "").trim();
     clinic.useAiImages = Boolean(req.body?.useAiImages);
 
+    generateInProgress = true;
+    generateAbort = new AbortController();
+    generateJob = { result: null, error: "" };
+    const signal = generateAbort.signal;
+    setGenerateProgress({
+      active: true,
+      percent: 5,
+      step: "Starting website generation...",
+      clinicId: clinic.id,
+      clinicName: clinic.clinicName
+    });
+    res.status(202).json({ started: true, clinicId: clinic.id, clinicName: clinic.clinicName });
+
+    (async () => {
+      try {
+        setGenerateProgress({
+          clinicId: clinic.id,
+          clinicName: clinic.clinicName,
+          percent: 8,
+          step: "Loading clinic details..."
+        });
+        const generated = await generateClinicPage(clinic, (progress) => {
+          setGenerateProgress(progress);
+        }, signal);
+        setGenerateProgress({ percent: 96, step: "Saving the website..." });
+        const fileName = `${clinic.id}-index.html`;
+        await mkdir(GENERATED_DIR, { recursive: true });
+        const outputPath = path.join(GENERATED_DIR, fileName);
+        await writeFile(outputPath, generated.html, "utf8");
+        rememberGeneratedPage(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+        const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
+        generateJob.result = {
+          clinicId: clinic.id,
+          clinicName: clinic.clinicName,
+          fileName,
+          previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
+          downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
+          usage: generated.usage,
+          tokenDetails,
+          plannedPrompt: generated.plannedPrompt || "",
+          warnings: generated.warnings || []
+        };
+        setGenerateProgress({ percent: 100, step: "Website ready.", active: false });
+      } catch (error) {
+        const publicError = toPublicError(error);
+        generateJob.error = publicError.message;
+        setGenerateProgress({
+          active: false,
+          percent: 0,
+          step: publicError.message
+        });
+        console.error(error);
+      } finally {
+        generateInProgress = false;
+        generateAbort = null;
+      }
+    })();
+  } catch (error) {
+    generateInProgress = false;
+    generateAbort = null;
+    next(error);
+  }
+});
+
+app.post("/api/edit", async (req, res, next) => {
+  if (generateInProgress) {
+    res.status(409).json({ error: "A website is already being generated or edited. Wait for it to finish, then try again." });
+    return;
+  }
+
+  generateInProgress = true;
+  generateAbort = new AbortController();
+  setGenerateProgress({
+    active: true,
+    percent: 5,
+    step: "Starting page edit...",
+    clinicId: req.body?.clinicId || "",
+    clinicName: ""
+  });
+  try {
+    const clinic = await getClinicById(req.body?.clinicId);
+    if (!clinic) {
+      res.status(404).json({ error: "Select a clinic from the list." });
+      return;
+    }
+
+    const html = String(req.body?.html || "");
+    if (!html.trim()) {
+      res.status(400).json({ error: "Upload an HTML file to edit." });
+      return;
+    }
+    if (html.length > 25 * 1024 * 1024) {
+      res.status(400).json({ error: "The HTML file is too large to edit." });
+      return;
+    }
+
+    clinic.provider = normalizeProvider(req.body?.provider);
     setGenerateProgress({
       clinicId: clinic.id,
       clinicName: clinic.clinicName,
       percent: 8,
       step: "Loading clinic details..."
     });
-    const generated = await generateClinicPage(clinic, (progress) => {
-      setGenerateProgress(progress);
-    }, generateAbort.signal);
-    setGenerateProgress({ percent: 96, step: "Saving the website..." });
+    const edited = await editClinicPage(
+      clinic,
+      html,
+      String(req.body?.prompt || "").trim().slice(0, 8000),
+      (progress) => {
+        setGenerateProgress(progress);
+      },
+      generateAbort.signal
+    );
+    setGenerateProgress({ percent: 96, step: "Saving the edited website..." });
     const fileName = `${clinic.id}-index.html`;
     await mkdir(GENERATED_DIR, { recursive: true });
     const outputPath = path.join(GENERATED_DIR, fileName);
-    await writeFile(outputPath, generated.html, "utf8");
-    generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
-    const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
-    setGenerateProgress({ percent: 100, step: "Website ready." });
+    await writeFile(outputPath, edited.html, "utf8");
+    rememberGeneratedPage(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+    const tokenDetails = await recordTokenUsage(clinic.provider, edited.usage, clinic);
+    setGenerateProgress({ percent: 100, step: "Edited website ready." });
     res.json({
       clinicId: clinic.id,
       clinicName: clinic.clinicName,
       fileName,
       previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
       downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
-      usage: generated.usage,
+      usage: edited.usage,
       tokenDetails,
-      plannedPrompt: generated.plannedPrompt || "",
-      warnings: generated.warnings || []
+      plannedPrompt: edited.plannedPrompt || "",
+      warnings: edited.warnings || []
     });
   } catch (error) {
     next(error);
@@ -280,7 +456,7 @@ app.post("/api/generate", async (req, res, next) => {
     setGenerateProgress({
       active: false,
       percent: generateProgress.percent === 100 ? 100 : 0,
-      step: generateProgress.percent === 100 ? "Website ready." : ""
+      step: generateProgress.percent === 100 ? "Edited website ready." : ""
     });
   }
 });
@@ -299,27 +475,35 @@ app.post("/api/generate/stop", (_req, res) => {
 });
 
 app.get("/api/generate/progress", (_req, res) => {
-  res.json(generateProgress);
+  res.json({
+    ...generateProgress,
+    error: generateJob.error || "",
+    result: generateJob.result
+  });
 });
 
 app.get("/preview/:id", (req, res) => {
-  const page = generatedPages.get(req.params.id);
+  const page = resolveGeneratedPage(req.params.id);
   if (!page?.outputPath) {
-    res.status(404).send("Generate the website before previewing.");
+    res.status(404).type("text").send("Generate the website before previewing.");
     return;
   }
 
-  res.sendFile(page.outputPath);
+  res.sendFile(path.resolve(page.outputPath), (error) => {
+    if (error && !res.headersSent) {
+      res.status(404).type("text").send("Generate the website before previewing.");
+    }
+  });
 });
 
 app.get("/api/download/:id", (req, res) => {
-  const page = generatedPages.get(req.params.id);
+  const page = resolveGeneratedPage(req.params.id);
   if (!page?.outputPath) {
-    res.status(404).json({ error: "Generate the website before downloading." });
+    res.status(404).type("text").send("Generate the website before downloading.");
     return;
   }
 
-  res.download(page.outputPath, "index.html");
+  sendGeneratedDownload(res, page.outputPath);
 });
 
 app.use((error, _req, res, _next) => {
@@ -328,8 +512,12 @@ app.use((error, _req, res, _next) => {
   res.status(publicError.status).json({ error: publicError.message });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Clinic website generator running at http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  mkdir(runtimeDir(), { recursive: true })
+    .then(() => mkdir(GENERATED_DIR, { recursive: true }))
+    .then(() => restoreGeneratedPagesFromDisk())
+    .catch(() => {});
+  console.log(`Clinic website generator running at http://${HOST}:${PORT}`);
 });
 
 server.timeout = REQUEST_TIMEOUT_MS;

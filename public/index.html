@@ -26,7 +26,7 @@
   <ol class="steps">
     <li class="is-current">Share form</li>
     <li>Choose clinic</li>
-    <li>Generate</li>
+    <li>Generate or edit</li>
     <li>Download</li>
   </ol>
 
@@ -246,13 +246,29 @@
       </details>
     </section>
 
+    <section class="panel">
+      <h2>Edit uploaded page</h2>
+      <p class="muted">Select a clinic, upload an existing HTML file, then edit it. Add an optional prompt to say what should change.</p>
+      <label for="editHtmlFile">HTML file</label>
+      <input id="editHtmlFile" type="file" accept=".html,.htm,text/html">
+      <p id="editFileStatus" class="muted">No HTML file selected.</p>
+      <label for="editPromptBox">Edit prompt (optional)</label>
+      <textarea id="editPromptBox" rows="5" placeholder="Example: Change the hero headline, keep the current colors, and update the contact details for this clinic."></textarea>
+      <p class="muted">If the prompt is empty, the page is updated to match the selected clinic and the current layout is kept. The selected model above is used for the edit.</p>
+      <div class="generate-actions">
+        <button id="editPageBtn" type="button" disabled>Edit page</button>
+        <button id="stopEditBtn" type="button" class="secondary" hidden>Stop edit</button>
+      </div>
+      <p id="editStatus" class="status" role="status"></p>
+    </section>
+
     <section class="panel result-panel">
       <div class="result-header">
         <h2>4. Preview and download</h2>
         <a id="downloadBtn" class="button" hidden>Download index.html</a>
       </div>
       <iframe id="preview" title="Generated clinic website preview" hidden></iframe>
-      <p id="emptyPreview" class="muted">Generate a website to preview it here.</p>
+      <p id="emptyPreview" class="muted">Generate a website or upload an HTML file to preview it here.</p>
     </section>
   </main>
 

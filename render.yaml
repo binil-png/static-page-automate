@@ -1,0 +1,54 @@
+# Render Blueprint. Fill sync:false values in the dashboard. Do not commit .env or credentials.json.
+# Service account: GOOGLE_SERVICE_ACCOUNT_JSON, or Secret File credentials.json plus
+# GOOGLE_SERVICE_ACCOUNT_FILE=/etc/secrets/credentials.json
+# usage.json, palettes, and generated/ are created at runtime. Set DATA_DIR to a disk mount to keep them.
+services:
+  - type: web
+    name: static-page-automate
+    runtime: node
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON_BASE64
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_FILE
+        sync: false
+      - key: DATA_DIR
+        sync: false
+      - key: GOOGLE_SHEET_URL
+        sync: false
+      - key: GOOGLE_SHEET_ID
+        sync: false
+      - key: GOOGLE_SHEET_TAB
+        sync: false
+      - key: GOOGLE_SHEET_GID
+        sync: false
+      - key: GOOGLE_FORM_URL
+        sync: false
+      - key: GOOGLE_DRIVE_PARENT_FOLDER_ID
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
