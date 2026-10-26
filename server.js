@@ -1,3 +1,4 @@
+import "./lib/loadEnv.js";
 import express from "express";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -12,11 +13,13 @@ import { getTokenUsage, recordTokenUsage } from "./lib/tokenUsage.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
 const generatedPages = new Map();
 const GENERATED_DIR = path.join(process.cwd(), "generated");
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 let generateInProgress = false;
 let generateAbort = null;
+let generateJob = { result: null, error: "" };
 let generateProgress = {
   active: false,
   percent: 0,
@@ -24,6 +27,8 @@ let generateProgress = {
   clinicId: "",
   clinicName: ""
 };
+
+app.set("trust proxy", 1);
 
 function setGenerateProgress(update) {
   generateProgress = { ...generateProgress, ...update };
@@ -47,8 +52,12 @@ function toPublicError(error) {
   };
 }
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(express.static(path.join(process.cwd(), "public")));
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
 
 app.get("/api/setup", async (_req, res, next) => {
   try {
@@ -223,15 +232,6 @@ app.post("/api/generate", async (req, res, next) => {
     return;
   }
 
-  generateInProgress = true;
-  generateAbort = new AbortController();
-  setGenerateProgress({
-    active: true,
-    percent: 5,
-    step: "Starting website generation...",
-    clinicId: req.body?.clinicId || "",
-    clinicName: ""
-  });
   try {
     const clinic = await getClinicById(req.body?.clinicId);
     if (!clinic) {
@@ -244,44 +244,67 @@ app.post("/api/generate", async (req, res, next) => {
     clinic.paletteId = String(req.body?.paletteId || "").trim();
     clinic.useAiImages = Boolean(req.body?.useAiImages);
 
+    generateInProgress = true;
+    generateAbort = new AbortController();
+    generateJob = { result: null, error: "" };
+    const signal = generateAbort.signal;
     setGenerateProgress({
+      active: true,
+      percent: 5,
+      step: "Starting website generation...",
       clinicId: clinic.id,
-      clinicName: clinic.clinicName,
-      percent: 8,
-      step: "Loading clinic details..."
+      clinicName: clinic.clinicName
     });
-    const generated = await generateClinicPage(clinic, (progress) => {
-      setGenerateProgress(progress);
-    }, generateAbort.signal);
-    setGenerateProgress({ percent: 96, step: "Saving the website..." });
-    const fileName = `${clinic.id}-index.html`;
-    await mkdir(GENERATED_DIR, { recursive: true });
-    const outputPath = path.join(GENERATED_DIR, fileName);
-    await writeFile(outputPath, generated.html, "utf8");
-    generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
-    const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
-    setGenerateProgress({ percent: 100, step: "Website ready." });
-    res.json({
-      clinicId: clinic.id,
-      clinicName: clinic.clinicName,
-      fileName,
-      previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
-      downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
-      usage: generated.usage,
-      tokenDetails,
-      plannedPrompt: generated.plannedPrompt || "",
-      warnings: generated.warnings || []
-    });
+    res.status(202).json({ started: true, clinicId: clinic.id, clinicName: clinic.clinicName });
+
+    (async () => {
+      try {
+        setGenerateProgress({
+          clinicId: clinic.id,
+          clinicName: clinic.clinicName,
+          percent: 8,
+          step: "Loading clinic details..."
+        });
+        const generated = await generateClinicPage(clinic, (progress) => {
+          setGenerateProgress(progress);
+        }, signal);
+        setGenerateProgress({ percent: 96, step: "Saving the website..." });
+        const fileName = `${clinic.id}-index.html`;
+        await mkdir(GENERATED_DIR, { recursive: true });
+        const outputPath = path.join(GENERATED_DIR, fileName);
+        await writeFile(outputPath, generated.html, "utf8");
+        generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+        const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
+        generateJob.result = {
+          clinicId: clinic.id,
+          clinicName: clinic.clinicName,
+          fileName,
+          previewUrl: `/preview/${encodeURIComponent(clinic.id)}`,
+          downloadUrl: `/api/download/${encodeURIComponent(clinic.id)}`,
+          usage: generated.usage,
+          tokenDetails,
+          plannedPrompt: generated.plannedPrompt || "",
+          warnings: generated.warnings || []
+        };
+        setGenerateProgress({ percent: 100, step: "Website ready.", active: false });
+      } catch (error) {
+        const publicError = toPublicError(error);
+        generateJob.error = publicError.message;
+        setGenerateProgress({
+          active: false,
+          percent: 0,
+          step: publicError.message
+        });
+        console.error(error);
+      } finally {
+        generateInProgress = false;
+        generateAbort = null;
+      }
+    })();
   } catch (error) {
-    next(error);
-  } finally {
     generateInProgress = false;
     generateAbort = null;
-    setGenerateProgress({
-      active: false,
-      percent: generateProgress.percent === 100 ? 100 : 0,
-      step: generateProgress.percent === 100 ? "Website ready." : ""
-    });
+    next(error);
   }
 });
 
@@ -299,7 +322,11 @@ app.post("/api/generate/stop", (_req, res) => {
 });
 
 app.get("/api/generate/progress", (_req, res) => {
-  res.json(generateProgress);
+  res.json({
+    ...generateProgress,
+    error: generateJob.error || "",
+    result: generateJob.result
+  });
 });
 
 app.get("/preview/:id", (req, res) => {
@@ -328,8 +355,9 @@ app.use((error, _req, res, _next) => {
   res.status(publicError.status).json({ error: publicError.message });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Clinic website generator running at http://localhost:${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  mkdir(GENERATED_DIR, { recursive: true }).catch(() => {});
+  console.log(`Clinic website generator running at http://${HOST}:${PORT}`);
 });
 
 server.timeout = REQUEST_TIMEOUT_MS;

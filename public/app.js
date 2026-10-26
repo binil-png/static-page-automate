@@ -513,6 +513,10 @@ async function pollGenerateProgress() {
   }
 }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function startGenerateProgress() {
   if (progressTimer) {
     clearInterval(progressTimer);
@@ -525,6 +529,24 @@ function startGenerateProgress() {
       setGenerateProgressUi(Math.min(92, displayedPercent + 0.4), generateProgressLabel.textContent);
     }
   }, 800);
+}
+
+async function waitForJobResult() {
+  for (;;) {
+    const progress = await fetchJson("/api/generate/progress");
+    const serverPercent = Number(progress.percent) || 0;
+    setGenerateProgressUi(Math.max(displayedPercent, serverPercent), progress.step || generateProgressLabel.textContent);
+    if (progress.result) {
+      return progress.result;
+    }
+    if (progress.error) {
+      throw new Error(progress.error);
+    }
+    if (!progress.active) {
+      throw new Error(progress.step || "Website generation was stopped.");
+    }
+    await delay(800);
+  }
 }
 
 async function generateWebsite() {
@@ -542,7 +564,7 @@ async function generateWebsite() {
   setCurrentStep(2);
 
   try {
-    const result = await fetchJson("/api/generate", {
+    await fetchJson("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -553,6 +575,7 @@ async function generateWebsite() {
         useAiImages: Boolean(aiImagesCheck?.checked)
       })
     });
+    const result = await waitForJobResult();
     generated = result;
     setGenerateProgressUi(100, "Website ready.");
     showPreview(result.previewUrl, result.downloadUrl);
