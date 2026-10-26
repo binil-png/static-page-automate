@@ -6,7 +6,8 @@ import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from ".
 import { createClinicFolder, findClinicFolder, countFolderImages } from "./lib/clinicFolder.js";
 import { deleteCustomPalette, saveCustomPalette } from "./lib/customPalettes.js";
 import { generateClinicPage, listColorPalettes } from "./lib/generate.js";
-import { getServiceAccountFilePath, getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
+import { getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
+import { generatedDir, getServiceAccountWritePath, runtimeDir } from "./lib/runtimePaths.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
 import { getAnthropicApiKey, getOpenAiApiKey, getShareSettings, getSheetSettings, normalizeProvider, saveSetupConfig } from "./lib/setupConfig.js";
 import { getTokenUsage, recordTokenUsage } from "./lib/tokenUsage.js";
@@ -15,7 +16,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const generatedPages = new Map();
-const GENERATED_DIR = path.join(process.cwd(), "generated");
+const GENERATED_DIR = generatedDir();
 const REQUEST_TIMEOUT_MS = 10 * 60 * 1000;
 let generateInProgress = false;
 let generateAbort = null;
@@ -92,7 +93,7 @@ app.post("/api/setup/credentials", async (req, res, next) => {
       return;
     }
 
-    await writeFile(getServiceAccountFilePath(), `${JSON.stringify(key, null, 2)}\n`, "utf8");
+    await writeFile(getServiceAccountWritePath(), `${JSON.stringify(key, null, 2)}\n`, "utf8");
     resetGoogleAuth();
     clearClinicCache();
     res.json({ hasCredentials: true, serviceAccountEmail: key.client_email });
@@ -356,7 +357,9 @@ app.use((error, _req, res, _next) => {
 });
 
 const server = app.listen(PORT, HOST, () => {
-  mkdir(GENERATED_DIR, { recursive: true }).catch(() => {});
+  mkdir(runtimeDir(), { recursive: true })
+    .then(() => mkdir(GENERATED_DIR, { recursive: true }))
+    .catch(() => {});
   console.log(`Clinic website generator running at http://${HOST}:${PORT}`);
 });
 

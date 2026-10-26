@@ -1,0 +1,50 @@
+{
+  "claude": {
+    "last": null,
+    "totals": {
+      "promptTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "estimatedUsd": 0,
+      "generations": 0
+    }
+  },
+  "gemini": {
+    "last": {
+      "promptTokens": 20139,
+      "outputTokens": 14077,
+      "totalTokens": 35829,
+      "estimatedUsd": 0,
+      "provider": "gemini",
+      "clinicId": "thaay-medi-clinic-265",
+      "clinicName": "Thaay Medi Clinic",
+      "at": "2026-10-26T09:21:10.070Z"
+    },
+    "totals": {
+      "promptTokens": 604787,
+      "outputTokens": 495466,
+      "totalTokens": 1111563,
+      "estimatedUsd": 0,
+      "generations": 45
+    }
+  },
+  "chatgpt": {
+    "last": {
+      "promptTokens": 13535,
+      "outputTokens": 10262,
+      "totalTokens": 23797,
+      "estimatedUsd": 0,
+      "provider": "chatgpt",
+      "clinicId": "emmett-physiotherapy-and-rehabilitation-center-257",
+      "clinicName": "EMMETT PHYSIOTHERAPY AND REHABILITATION CENTER",
+      "at": "2026-10-01T10:28:39.746Z"
+    },
+    "totals": {
+      "promptTokens": 45669,
+      "outputTokens": 43811,
+      "totalTokens": 89480,
+      "estimatedUsd": 0,
+      "generations": 4
+    }
+  }
+}
