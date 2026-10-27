@@ -1,5 +1,6 @@
 import "./lib/loadEnv.js";
 import express from "express";
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from "./lib/clinics.js";
@@ -30,6 +31,77 @@ let generateProgress = {
 };
 
 app.set("trust proxy", 1);
+
+function safeClinicId(raw) {
+  const id = String(raw || "").trim();
+  if (!id || id.includes("..") || /[\\/]/.test(id)) {
+    return "";
+  }
+  return id;
+}
+
+function generatedFilePath(clinicId) {
+  return path.join(GENERATED_DIR, `${clinicId}-index.html`);
+}
+
+function rememberGeneratedPage(clinicId, extra = {}) {
+  const outputPath = extra.outputPath || generatedFilePath(clinicId);
+  const page = {
+    fileName: extra.fileName || `${clinicId}-index.html`,
+    clinicName: extra.clinicName || clinicId,
+    outputPath
+  };
+  generatedPages.set(clinicId, page);
+  return page;
+}
+
+function resolveGeneratedPage(rawId) {
+  const clinicId = safeClinicId(rawId);
+  if (!clinicId) {
+    return null;
+  }
+  const mapped = generatedPages.get(clinicId);
+  if (mapped?.outputPath && existsSync(mapped.outputPath)) {
+    return mapped;
+  }
+  const outputPath = generatedFilePath(clinicId);
+  if (!existsSync(outputPath)) {
+    return null;
+  }
+  return rememberGeneratedPage(clinicId, { outputPath });
+}
+
+function restoreGeneratedPagesFromDisk() {
+  let names = [];
+  try {
+    names = readdirSync(GENERATED_DIR);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.endsWith("-index.html")) {
+      continue;
+    }
+    const clinicId = name.slice(0, -"-index.html".length);
+    if (!safeClinicId(clinicId)) {
+      continue;
+    }
+    rememberGeneratedPage(clinicId, {
+      fileName: name,
+      outputPath: path.join(GENERATED_DIR, name)
+    });
+  }
+}
+
+function sendGeneratedDownload(res, outputPath) {
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Disposition", "attachment; filename=\"index.html\"");
+  res.sendFile(path.resolve(outputPath), (error) => {
+    if (error && !res.headersSent) {
+      res.status(404).type("text").send("Generate the website before downloading.");
+    }
+  });
+}
 
 function setGenerateProgress(update) {
   generateProgress = { ...generateProgress, ...update };
@@ -274,7 +346,7 @@ app.post("/api/generate", async (req, res, next) => {
         await mkdir(GENERATED_DIR, { recursive: true });
         const outputPath = path.join(GENERATED_DIR, fileName);
         await writeFile(outputPath, generated.html, "utf8");
-        generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+        rememberGeneratedPage(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
         const tokenDetails = await recordTokenUsage(clinic.provider, generated.usage, clinic);
         generateJob.result = {
           clinicId: clinic.id,
@@ -362,7 +434,7 @@ app.post("/api/edit", async (req, res, next) => {
     await mkdir(GENERATED_DIR, { recursive: true });
     const outputPath = path.join(GENERATED_DIR, fileName);
     await writeFile(outputPath, edited.html, "utf8");
-    generatedPages.set(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
+    rememberGeneratedPage(clinic.id, { fileName, clinicName: clinic.clinicName, outputPath });
     const tokenDetails = await recordTokenUsage(clinic.provider, edited.usage, clinic);
     setGenerateProgress({ percent: 100, step: "Edited website ready." });
     res.json({
@@ -411,23 +483,27 @@ app.get("/api/generate/progress", (_req, res) => {
 });
 
 app.get("/preview/:id", (req, res) => {
-  const page = generatedPages.get(req.params.id);
+  const page = resolveGeneratedPage(req.params.id);
   if (!page?.outputPath) {
-    res.status(404).send("Generate the website before previewing.");
+    res.status(404).type("text").send("Generate the website before previewing.");
     return;
   }
 
-  res.sendFile(page.outputPath);
+  res.sendFile(path.resolve(page.outputPath), (error) => {
+    if (error && !res.headersSent) {
+      res.status(404).type("text").send("Generate the website before previewing.");
+    }
+  });
 });
 
 app.get("/api/download/:id", (req, res) => {
-  const page = generatedPages.get(req.params.id);
+  const page = resolveGeneratedPage(req.params.id);
   if (!page?.outputPath) {
-    res.status(404).json({ error: "Generate the website before downloading." });
+    res.status(404).type("text").send("Generate the website before downloading.");
     return;
   }
 
-  res.download(page.outputPath, "index.html");
+  sendGeneratedDownload(res, page.outputPath);
 });
 
 app.use((error, _req, res, _next) => {
@@ -439,6 +515,7 @@ app.use((error, _req, res, _next) => {
 const server = app.listen(PORT, HOST, () => {
   mkdir(runtimeDir(), { recursive: true })
     .then(() => mkdir(GENERATED_DIR, { recursive: true }))
+    .then(() => restoreGeneratedPagesFromDisk())
     .catch(() => {});
   console.log(`Clinic website generator running at http://${HOST}:${PORT}`);
 });
