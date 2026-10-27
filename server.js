@@ -5,7 +5,7 @@ import path from "node:path";
 import { clearClinicCache, getClinicById, listClinics, toClinicSummary } from "./lib/clinics.js";
 import { createClinicFolder, findClinicFolder, countFolderImages } from "./lib/clinicFolder.js";
 import { deleteCustomPalette, saveCustomPalette } from "./lib/customPalettes.js";
-import { generateClinicPage, listColorPalettes } from "./lib/generate.js";
+import { editClinicPage, generateClinicPage, listColorPalettes } from "./lib/generate.js";
 import { getServiceAccountInfo, resetGoogleAuth } from "./lib/googleAuth.js";
 import { generatedDir, getServiceAccountWritePath, runtimeDir } from "./lib/runtimePaths.js";
 import { shareFormWithClient } from "./lib/shareForm.js";
